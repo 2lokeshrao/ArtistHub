@@ -480,13 +480,13 @@ export default function PortfolioPage() {
           ))}
         </div>
 
-        {/* ── Tab content ─── */}
+                {/* ── Tab content ─── */}
         <div className="pb-12">
           {tab === 'portfolio' && (
             <>
               <PortfolioGrid images={profile.portfolio_images} />
 
-              {/* Services */}
+              {/* Services Section */}
               {services.length > 0 && (
                 <section className="px-5 py-4">
                   <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-4 uppercase">Services</h2>
@@ -506,21 +506,21 @@ export default function PortfolioPage() {
               )}
 
               {/* UPI QR Section Fix */}
-{profile.upi_qr_url && (
-  <section className="px-5 py-8 text-center bg-white/5 rounded-3xl mx-5 mb-10 border border-white/5">
-    <h2 className="font-display text-[10px] tracking-[0.25em] text-champagne mb-6 uppercase">Pay via UPI</h2>
-    <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl">
-      <img 
-  src={transformDriveLink(profile.upi_qr_url)} 
-  alt="UPI QR" 
-  className="w-full max-w-[220px] h-auto object-contain mx-auto" 
-/>
-
-    </div>
-    <p className="text-[10px] text-white/30 mt-4 uppercase tracking-widest italic">Scan to Pay Advance</p>
-  </section>
-)}
-
+              {profile.upi_qr_url && (
+                <section className="px-5 py-8 text-center bg-white/5 rounded-3xl mx-5 mb-10 border border-white/5 mt-6">
+                  <h2 className="font-display text-[10px] tracking-[0.25em] text-champagne mb-6 uppercase">Pay via UPI</h2>
+                  <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl">
+                    <img 
+                      src={transformDriveLink(profile.upi_qr_url)} 
+                      alt="UPI QR" 
+                      className="w-full max-w-[220px] h-auto object-contain mx-auto" 
+                    />
+                  </div>
+                  <p className="text-[10px] text-white/30 mt-4 uppercase tracking-widest italic">Scan to Pay Advance</p>
+                </section>
+              )}
+            </>
+          )}
 
           {tab === 'book' && (
             <section className="px-5 py-6">
@@ -534,8 +534,8 @@ export default function PortfolioPage() {
         </div>
 
         {/* ── Footer ─── */}
-        <div className="text-center py-6 border-t border-white/5 text-[10px] text-white/20 tracking-widest">
-          ARTISTHUB · DIGITAL PORTFOLIO
+        <div className="text-center py-6 border-t border-white/5 text-[10px] text-white/20 tracking-widest uppercase">
+          ARTISTHUB · DIGITAL PORTFOLIO &copy; 2026
         </div>
       </main>
     </>
