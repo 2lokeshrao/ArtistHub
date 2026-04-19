@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
@@ -21,19 +21,15 @@ function transformDriveLink(url) {
 
 const formatINR = n => `₹${Number(n).toLocaleString('en-IN')}`;
 
-// --- Calendar Logic ---
-function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
-function toISO(year, month, day) { return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`; }
-function today() { const d = new Date(); return toISO(d.getFullYear(), d.getMonth(), d.getDate()); }
-
 export default function PortfolioPage() {
   const router = useRouter();
   const { username } = router.query;
+  const bookingRef = useRef(null); // For scrolling to booking
+  
   const [profile, setProfile] = useState(null);
   const [services, setServices] = useState([]);
   const [busyDates, setBusyDates] = useState(new Set());
   const [loading, setLoading] = useState(true);
-  const [showBooking, setShowBooking] = useState(false);
 
   useEffect(() => {
     if (!username) return;
@@ -49,120 +45,106 @@ export default function PortfolioPage() {
     })();
   }, [username]);
 
-  if (loading) return <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center text-[#D4B996]">Loading Portfolio...</div>;
-  if (!profile) return <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center text-white/20">Artist Not Found</div>;
+  const scrollToBooking = () => bookingRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  if (loading) return <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center text-[#D4B996]">ArtistHub Loading...</div>;
+  if (!profile) return <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center text-white/20 uppercase tracking-widest">Artist Not Found</div>;
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-white font-sans pb-32">
+    <div className="min-h-screen bg-[#1A1A1A] text-white font-sans selection:bg-[#D4B996] selection:text-black">
       <Head><title>{profile.full_name} | Portfolio</title></Head>
 
-      {/* 1. Profile Header (Gap Fixed) */}
-      <div className="relative h-64 w-full">
+      {/* 1. Profile Header & Top Buttons */}
+      <div className="relative h-[450px] w-full overflow-hidden">
         {profile.cover_url ? (
-          <img src={transformDriveLink(profile.cover_url)} className="w-full h-full object-cover opacity-50" />
-        ) : <div className="w-full h-full bg-[#252525]" />}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] to-transparent" />
+          <img src={transformDriveLink(profile.cover_url)} className="w-full h-full object-cover opacity-50 scale-105" />
+        ) : <div className="w-full h-full bg-gradient-to-b from-[#252525] to-[#1A1A1A]" />}
+        
+        {/* Top Buttons Overlay */}
+        <div className="absolute top-8 left-0 right-0 px-6 flex justify-between items-center z-20">
+          <button className="px-5 py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full text-[10px] font-bold uppercase tracking-widest text-[#D4B996]">Portfolio</button>
+          <button onClick={scrollToBooking} className="px-5 py-2 bg-[#D4B996] rounded-full text-[10px] font-black uppercase tracking-widest text-black shadow-xl shadow-[#D4B996]/20">Book Now</button>
+        </div>
+
+        <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/20 to-transparent" />
       </div>
 
-      <div className="relative px-6 -mt-16 flex flex-col items-center text-center pb-6">
-        <img src={transformDriveLink(profile.avatar_url)} className="w-28 h-28 rounded-3xl object-cover border-4 border-[#1A1A1A] shadow-2xl mb-4" />
-        <h1 className="text-2xl font-bold text-[#D4B996] italic">{profile.full_name}</h1>
-        <p className="text-[10px] uppercase tracking-[0.3em] text-white/40 mt-1">{profile.tagline || 'Professional Artist'}</p>
+      {/* 2. Artist Identity */}
+      <div className="relative px-6 -mt-32 flex flex-col items-center text-center pb-12 border-b border-white/5">
+        <div className="relative p-1 bg-gradient-to-b from-[#D4B996] to-transparent rounded-[40px] mb-6">
+          <img src={transformDriveLink(profile.avatar_url)} className="w-32 h-32 rounded-[38px] object-cover border-4 border-[#1A1A1A]" />
+        </div>
+        <h1 className="text-4xl font-black text-[#D4B996] italic tracking-tighter mb-2">{profile.full_name}</h1>
+        <p className="text-[11px] uppercase tracking-[0.5em] text-white/30 font-medium">{profile.tagline || 'Visual Artist & Expert'}</p>
       </div>
 
-      {/* 2. Portfolio Images Section (Wapas Add Kar Diya) */}
-      <section className="px-6 py-4">
-        <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] mb-4 border-l-2 border-[#D4B996] pl-3">Portfolio Gallery</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {profile.portfolio_images?.map((img, idx) => (
-            <img key={idx} src={transformDriveLink(img)} className="w-full aspect-square object-cover rounded-2xl border border-white/5" />
-          ))}
-        </div>
-      </section>
-
-      {/* 3. Achievements & Experience */}
-      <section className="px-6 py-6 space-y-6">
-        <div className="p-5 bg-white/5 rounded-3xl border border-white/10">
-          <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-2 font-bold">Achievements & Education</h3>
-          <p className="text-xs text-white/60 leading-relaxed">{profile.education || "Bachelor of Arts & Certified Professional from Artist Hub Academy."}</p>
-          <hr className="my-4 border-white/5" />
-          <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-2 font-bold">Work Experience</h3>
-          <p className="text-xs text-white/60 leading-relaxed">{profile.experience || "5+ years of professional experience with over 500+ happy clients."}</p>
-        </div>
-
-        {/* 4. Services Detailed List */}
-        <div className="space-y-4">
-          <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] border-l-2 border-[#D4B996] pl-3">Detailed Services</h2>
-          {services.map(s => (
-            <div key={s.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-bold text-[#D4B996]">{s.name}</span>
-                <span className="font-bold text-sm">{formatINR(s.price)}</span>
-              </div>
-              <p className="text-[11px] text-white/50 mb-3">{s.description || "Includes premium skin prep, HD products, and hair styling."}</p>
-              <div className="flex gap-2">
-                 <span className="text-[8px] bg-[#D4B996]/10 text-[#D4B996] px-2 py-1 rounded-md uppercase">Long Lasting</span>
-                 <span className="text-[8px] bg-[#D4B996]/10 text-[#D4B996] px-2 py-1 rounded-md uppercase">Premium Kit</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* 5. Social & Instagram */}
-        <div className="space-y-4">
-          <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] border-l-2 border-[#D4B996] pl-3">Social Profiles</h2>
-          <a href={profile.instagram_url || '#'} className="flex items-center justify-between p-5 bg-gradient-to-r from-purple-500/10 to-pink-500/10 border border-white/10 rounded-3xl">
-             <div className="flex items-center gap-3"><span className="text-2xl">📸</span><p className="text-xs font-bold uppercase tracking-wider">Instagram</p></div>
-             <span className="text-[9px] font-bold text-[#D4B996]">VIEW WORK</span>
-          </a>
-        </div>
-
-        {/* 6. Payment QR */}
-        <div className="text-center py-10 bg-white/5 border border-white/10 rounded-[40px]">
-           <p className="text-[10px] uppercase tracking-widest text-white/30 mb-6 font-bold">Scan to Pay Advance</p>
-           {profile.upi_qr_url && (
-             <div className="bg-white p-4 rounded-3xl inline-block">
-               <img src={transformDriveLink(profile.upi_qr_url)} className="w-40 h-auto" />
-               <p className="text-[10px] text-black/40 font-mono mt-2 uppercase">{profile.upi_id}</p>
-             </div>
-           )}
-        </div>
-      </section>
-
-      {/* 7. Footer */}
-      <footer className="px-6 py-12 text-center text-white/20">
-          <p className="text-lg font-bold italic mb-2">ArtistHub</p>
-          <p className="text-[9px] uppercase tracking-[0.3em]">&copy; 2026 Crafted by Lucky</p>
-      </footer>
-
-      {/* 8. Sticky Book Now Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#1A1A1A]/90 backdrop-blur-xl z-50 border-t border-white/5">
-        <button onClick={() => setShowBooking(true)} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl shadow-xl uppercase tracking-widest text-xs">
-          Book Now ✨
-        </button>
-      </div>
-
-      {/* 9. Booking Flow Overlay */}
-      {showBooking && (
-        <div className="fixed inset-0 z-[60] bg-[#1A1A1A] overflow-y-auto animate-fadeIn">
-          <div className="p-6">
-            <button onClick={() => setShowBooking(false)} className="text-[#D4B996] text-[10px] font-bold uppercase mb-8">← Back</button>
-            <BookingFlow profile={profile} services={services} busyDates={busyDates} />
+      {/* 3. Achievements & Portfolio Gallery */}
+      <section className="p-6 space-y-16 mt-8">
+        
+        {/* Achievement Section */}
+        <div className="grid gap-4">
+          <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] font-bold mb-2">Background & Experience</h2>
+          <div className="p-6 bg-white/5 rounded-[32px] border border-white/10 italic text-xs leading-relaxed text-white/60">
+            {profile.education || "Bachelor of Arts degree with Advanced Professional Certifications."}
+            <div className="h-[1px] w-full bg-white/5 my-4" />
+            {profile.experience || "Handling professional high-end projects with 5+ years of expertise."}
           </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-// --- Booking Components (Simplified for space) ---
-function BookingFlow({ profile, services, busyDates }) {
-  // Yahan wahi same 4-step logic rahega (Service -> Date -> Info -> Payment)
-  return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold text-[#D4B996] italic">Secure Booking</h2>
-      <p className="text-white/40 text-xs">Step-by-step process to confirm your date.</p>
-      {/* Isme aapka wahi purana 4 steps ka form code paste ho jayega */}
+        {/* Gallery */}
+        <div className="space-y-6">
+          <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] font-bold">Featured Work</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {profile.portfolio_images?.map((img, i) => (
+              <img key={i} src={transformDriveLink(img)} className="w-full aspect-[4/5] object-cover rounded-3xl border border-white/5 hover:scale-[1.02] transition-transform" />
+            ))}
+          </div>
+        </div>
+
+        {/* Services */}
+        <div className="space-y-6">
+          <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] font-bold">Our Expertise</h2>
+          <div className="grid gap-4">
+            {services.map(s => (
+              <div key={s.id} className="p-6 bg-white/5 border border-white/10 rounded-[35px] group">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-bold text-lg text-[#D4B996] italic">{s.name}</h3>
+                  <span className="font-bold text-sm bg-white/5 px-3 py-1 rounded-full">{formatINR(s.price)}</span>
+                </div>
+                <p className="text-[11px] text-white/40 leading-relaxed mb-4">{s.description || "Premium service with high-end results and attention to detail."}</p>
+                <div className="flex gap-2">
+                   <span className="text-[8px] border border-[#D4B996]/20 text-[#D4B996] px-3 py-1 rounded-full uppercase font-bold tracking-widest">Premium Kit</span>
+                   <span className="text-[8px] border border-[#D4B996]/20 text-[#D4B996] px-3 py-1 rounded-full uppercase font-bold tracking-widest">Long Lasting</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Booking Ref Point */}
+        <div ref={bookingRef} className="pt-10 scroll-mt-10">
+          <h2 className="text-[10px] uppercase tracking-[0.3em] text-[#D4B996] font-bold mb-6 text-center">Secure Appointment</h2>
+          {/* Booking Flow logic (Same as before) will be embedded here */}
+          <div className="p-8 bg-[#D4B996]/5 border border-[#D4B996]/20 rounded-[45px] text-center">
+            <p className="text-xs text-white/40 mb-6 italic">Select a date and pay 30% advance to confirm your slot.</p>
+            <button onClick={() => alert("Redirecting to Booking Flow...")} className="w-full py-5 bg-[#D4B996] text-black font-black rounded-3xl uppercase tracking-widest text-xs shadow-2xl shadow-[#D4B996]/20">Start Booking Process</button>
+          </div>
+        </div>
+
+        {/* Social & Contact */}
+        <div className="py-10 border-t border-white/5 text-center">
+          <p className="text-[10px] uppercase tracking-[0.4em] text-white/20 mb-8">Connect With Me</p>
+          <div className="flex justify-center gap-6">
+            <a href={profile.instagram_url || '#'} className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-xl border border-white/10 group active:scale-90 transition-all">📸</a>
+            <a href={`tel:${profile.phone}`} className="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-xl border border-white/10 group active:scale-90 transition-all">📞</a>
+          </div>
+        </div>
+      </section>
+
+      <footer className="px-6 py-12 text-center text-white/10">
+        <p className="text-sm font-bold italic tracking-widest mb-1">ArtistHub</p>
+        <p className="text-[8px] uppercase tracking-[0.5em]">Made by 🤞 Lucky</p>
+      </footer>
     </div>
   );
 }
