@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import Head from 'head';
+import Head from 'next/head';
 import { useRouter } from 'next/router';
 import {
   getProfileByUsername,
