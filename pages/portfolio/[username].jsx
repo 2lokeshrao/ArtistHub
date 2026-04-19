@@ -405,7 +405,7 @@ export default function PortfolioPage() {
         {/* ── Cover image ─── */}
         <div className="relative h-48 w-full overflow-hidden">
           {profile.cover_url
-            ? <img <img src={transformDriveLink(profile.cover_url)} alt="Cover" className="w-full h-full object-cover" />
+            ? <img src={transformDriveLink(profile.cover_url)} alt="Cover" className="w-full h-full object-cover" />
             : <div className="w-full h-full bg-gradient-to-br from-[#2c2318] via-charcoal to-[#1a1a1a]" />
           }
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/40 to-transparent" />
