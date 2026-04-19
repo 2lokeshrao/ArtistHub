@@ -516,7 +516,7 @@ export default function PortfolioPage() {
                       className="w-full max-w-[220px] h-auto object-contain mx-auto" 
                     />
                   </div>
-                  <p className="text-[10px] text-white/30 mt-4 uppercase tracking-widest italic">Scan to Pay Advance</p>
+                  <p className="text-[14px] text-red/30 mt-4 uppercase tracking-widest italic">Scan to Pay 30% Advance</p>
                 </section>
               )}
             </>
