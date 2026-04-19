@@ -51,7 +51,11 @@ function ProfileEditor({ profile, userId, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  // यह फंक्शन कीबोर्ड को हटने से रोकेगा
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+  };
 
   const handleSave = async () => {
     if (!form.username.trim()) { setError('Username is required.'); return; }
@@ -69,84 +73,82 @@ function ProfileEditor({ profile, userId, onSaved }) {
     }
   };
 
-  const Field = ({ label, k, type = 'text', placeholder = '' }) => (
-    <div>
-      <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">{label}</label>
-      <input
-        type={type}
-        value={form[k]}
-        placeholder={placeholder}
-        onChange={e => set(k, e.target.value)}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors"
-      />
-    </div>
-  );
+  const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors";
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Username *" k="username" placeholder="your-url-handle" />
-        <Field label="Full Name *" k="full_name" placeholder="Priya Sharma" />
+        <div>
+          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Username *</label>
+          <input name="username" value={form.username} onChange={handleChange} className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Full Name *</label>
+          <input name="full_name" value={form.full_name} onChange={handleChange} className={inputClass} />
+        </div>
       </div>
-      <Field label="Tagline" k="tagline" placeholder="Luxury Bridal Artist · Jaipur" />
+      
+      <div>
+        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Tagline</label>
+        <input name="tagline" value={form.tagline} onChange={handleChange} className={inputClass} />
+      </div>
+
       <div>
         <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Bio</label>
-        <textarea
-          value={form.bio}
-          onChange={e => set('bio', e.target.value)}
-          rows={3}
-          placeholder="A short description about your work..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors resize-none"
-        />
+        <textarea name="bio" value={form.bio} onChange={handleChange} rows={3} className={inputClass + " resize-none"} />
       </div>
+
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Phone (WhatsApp)" k="phone" type="tel" placeholder="+91 9876543210" />
-        <Field label="City" k="city" placeholder="Jaipur, Rajasthan" />
+        <div>
+          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Phone</label>
+          <input name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">City</label>
+          <input name="city" value={form.city} onChange={handleChange} className={inputClass} />
+        </div>
       </div>
 
       <hr className="border-white/10" />
-      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Image URLs (paste external links)</p>
+      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Image URLs</p>
 
-      <Field label="Avatar Image URL" k="avatar_url" placeholder="https://..." />
-      <Field label="Cover Banner URL" k="cover_url" placeholder="https://..." />
-      <Field label="UPI QR Code URL" k="upi_qr_url" placeholder="https://..." />
       <div>
-        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">
-          Portfolio Image URLs <span className="text-white/30 normal-case">(one per line, up to 9)</span>
-        </label>
-        <textarea
-          value={form.portfolio_images}
-          onChange={e => set('portfolio_images', e.target.value)}
-          rows={5}
-          placeholder={"https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg"}
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors resize-none font-mono"
-        />
+        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Avatar URL</label>
+        <input name="avatar_url" value={form.avatar_url} onChange={handleChange} className={inputClass} />
+      </div>
+      <div>
+        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Cover URL</label>
+        <input name="cover_url" value={form.cover_url} onChange={handleChange} className={inputClass} />
+      </div>
+      <div>
+        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">UPI QR URL</label>
+        <input name="upi_qr_url" value={form.upi_qr_url} onChange={handleChange} className={inputClass} />
+      </div>
+
+      <div>
+        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Portfolio Images (One per line)</label>
+        <textarea name="portfolio_images" value={form.portfolio_images} onChange={handleChange} rows={5} className={inputClass + " font-mono resize-none"} />
       </div>
 
       <hr className="border-white/10" />
-      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Social Media</p>
-      <Field label="Instagram URL" k="instagram_url" placeholder="https://instagram.com/..." />
-      <Field label="YouTube URL"   k="youtube_url"   placeholder="https://youtube.com/..." />
-      <Field label="Snapchat URL"  k="snapchat_url"  placeholder="https://snapchat.com/..." />
+      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Social Links</p>
+      
+      <input name="instagram_url" placeholder="Instagram URL" value={form.instagram_url} onChange={handleChange} className={inputClass} />
+      <input name="youtube_url" placeholder="YouTube URL" value={form.youtube_url} onChange={handleChange} className={inputClass} />
+      <input name="snapchat_url" placeholder="Snapchat URL" value={form.snapchat_url} onChange={handleChange} className={inputClass} />
 
       <div className="flex items-center gap-3">
         <button
-          onClick={() => set('is_public', !form.is_public)}
+          onClick={() => setForm(f => ({ ...f, is_public: !f.is_public }))}
           className={`relative w-10 h-5 rounded-full transition-colors ${form.is_public ? 'bg-champagne' : 'bg-white/20'}`}
         >
-          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.is_public ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${form.is_public ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
-        <label className="text-sm text-white/70">
-          Profile is <strong className={form.is_public ? 'text-champagne' : 'text-white/40'}>{form.is_public ? 'Public' : 'Hidden'}</strong>
-        </label>
+        <label className="text-sm text-white/70">Profile is {form.is_public ? 'Public' : 'Hidden'}</label>
       </div>
 
       {error && <p className="text-red-400 text-xs">{error}</p>}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full py-3 rounded-2xl bg-gradient-to-r from-champagne to-[#c8a96e] text-charcoal font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_20px_rgba(212,185,150,0.3)] transition-all disabled:opacity-50"
-      >
+      <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-2xl bg-gradient-to-r from-champagne to-[#c8a96e] text-charcoal font-bold text-sm tracking-widest uppercase disabled:opacity-50">
         {saving ? 'Saving…' : 'Save Profile'}
       </button>
     </div>
