@@ -1,11 +1,15 @@
+// pages/dashboard/index.jsx
+// ─────────────────────────────────────────────────────────────
+//  Artist Dashboard — manage profile, services, availability
+//  Protected route: requires Supabase auth session
+// ─────────────────────────────────────────────────────────────
+
 import { useState, useEffect, useCallback } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
-import { 
-  supabase, getOwnProfile, upsertProfile, getServicesByProfileId,
+import { supabase, getOwnProfile, upsertProfile, getServicesByProfileId,
   upsertService, deleteService, getAvailabilityMap, toggleDateStatus,
-  getOwnBookings 
-} from '../../lib/supabaseClient';
+  getOwnBookings } from '../../lib/supabaseClient';
 
 // ── Helpers ──────────────────────────────────────────────────
 const formatINR = n => `₹${Number(n).toLocaleString('en-IN')}`;
@@ -44,14 +48,10 @@ function ProfileEditor({ profile, userId, onSaved }) {
     youtube_url: profile?.youtube_url || '',
     is_public: profile?.is_public ?? true,
   });
-  
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
-  };
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
     if (!form.username.trim()) { setError('Username is required.'); return; }
@@ -69,113 +69,84 @@ function ProfileEditor({ profile, userId, onSaved }) {
     }
   };
 
-  const inputClass = "w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors";
+  const Field = ({ label, k, type = 'text', placeholder = '' }) => (
+    <div>
+      <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">{label}</label>
+      <input
+        type={type}
+        value={form[k]}
+        placeholder={placeholder}
+        onChange={e => set(k, e.target.value)}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors"
+      />
+    </div>
+  );
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Username *</label>
-          <input name="username" value={form.username} onChange={handleChange} className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Full Name *</label>
-          <input name="full_name" value={form.full_name} onChange={handleChange} className={inputClass} />
-        </div>
+        <Field label="Username *" k="username" placeholder="your-url-handle" />
+        <Field label="Full Name *" k="full_name" placeholder="Priya Sharma" />
       </div>
-      
-      <div>
-        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Tagline</label>
-        <input name="tagline" value={form.tagline} onChange={handleChange} className={inputClass} />
-      </div>
-
+      <Field label="Tagline" k="tagline" placeholder="Luxury Bridal Artist · Jaipur" />
       <div>
         <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Bio</label>
-        <textarea name="bio" value={form.bio} onChange={handleChange} rows={3} className={inputClass + " resize-none"} />
+        <textarea
+          value={form.bio}
+          onChange={e => set('bio', e.target.value)}
+          rows={3}
+          placeholder="A short description about your work..."
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors resize-none"
+        />
       </div>
-
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Phone</label>
-          <input name="phone" value={form.phone} onChange={handleChange} className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">City</label>
-          <input name="city" value={form.city} onChange={handleChange} className={inputClass} />
-        </div>
+        <Field label="Phone (WhatsApp)" k="phone" type="tel" placeholder="+91 9876543210" />
+        <Field label="City" k="city" placeholder="Jaipur, Rajasthan" />
       </div>
 
       <hr className="border-white/10" />
-      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Image URLs</p>
+      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Image URLs (paste external links)</p>
 
+      <Field label="Avatar Image URL" k="avatar_url" placeholder="https://..." />
+      <Field label="Cover Banner URL" k="cover_url" placeholder="https://..." />
+      <Field label="UPI QR Code URL" k="upi_qr_url" placeholder="https://..." />
       <div>
-        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Avatar URL</label>
-        <input name="avatar_url" value={form.avatar_url} onChange={handleChange} className={inputClass} />
-      </div>
-      <div>
-        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Cover URL</label>
-        <input name="cover_url" value={form.cover_url} onChange={handleChange} className={inputClass} />
-      </div>
-      <div>
-        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">UPI QR URL</label>
-        <input name="upi_qr_url" value={form.upi_qr_url} onChange={handleChange} className={inputClass} />
-      </div>
-
-      <div>
-        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">Portfolio Images (One per line)</label>
-        <textarea name="portfolio_images" value={form.portfolio_images} onChange={handleChange} rows={5} className={inputClass + " font-mono resize-none"} />
+        <label className="block text-[10px] tracking-widest text-champagne/70 mb-1.5 uppercase">
+          Portfolio Image URLs <span className="text-white/30 normal-case">(one per line, up to 9)</span>
+        </label>
+        <textarea
+          value={form.portfolio_images}
+          onChange={e => set('portfolio_images', e.target.value)}
+          rows={5}
+          placeholder={"https://example.com/photo1.jpg\nhttps://example.com/photo2.jpg"}
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-white/30 text-sm focus:outline-none focus:border-champagne/60 transition-colors resize-none font-mono"
+        />
       </div>
 
       <hr className="border-white/10" />
-      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Social Links</p>
-      
-      <div className="space-y-3">
-        <input name="instagram_url" placeholder="Instagram URL" value={form.instagram_url} onChange={handleChange} className={inputClass} />
-        <input name="youtube_url" placeholder="YouTube URL" value={form.youtube_url} onChange={handleChange} className={inputClass} />
-        <input name="snapchat_url" placeholder="Snapchat URL" value={form.snapchat_url} onChange={handleChange} className={inputClass} />
-      </div>
+      <p className="text-xs text-champagne/50 tracking-widest uppercase font-bold">Social Media</p>
+      <Field label="Instagram URL" k="instagram_url" placeholder="https://instagram.com/..." />
+      <Field label="YouTube URL"   k="youtube_url"   placeholder="https://youtube.com/..." />
+      <Field label="Snapchat URL"  k="snapchat_url"  placeholder="https://snapchat.com/..." />
 
-      {/* Fixed Toggle */}
-      <div className="flex items-center gap-3 py-4 border-t border-white/10">
+      <div className="flex items-center gap-3">
         <button
-          type="button"
-          onClick={() => setForm(f => ({ ...f, is_public: !f.is_public }))}
-          style={{
-            width: '44px',
-            height: '24px',
-            backgroundColor: form.is_public ? '#D4B996' : 'rgba(255,255,255,0.2)',
-            borderRadius: '999px',
-            position: 'relative',
-            transition: 'background-color 0.2s',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            padding: '0 2px',
-            flexShrink: 0
-          }}
+          onClick={() => set('is_public', !form.is_public)}
+          className={`relative w-10 h-5 rounded-full transition-colors ${form.is_public ? 'bg-champagne' : 'bg-white/20'}`}
         >
-          <div
-            style={{
-              width: '20px',
-              height: '20px',
-              backgroundColor: 'white',
-              borderRadius: '50%',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-              transform: form.is_public ? 'translateX(20px)' : 'translateX(0)',
-              transition: 'transform 0.2s ease-in-out'
-            }}
-          />
+          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.is_public ? 'translate-x-5' : 'translate-x-0.5'}`} />
         </button>
-        <span className="text-sm text-white/70">
-          Profile is <strong style={{ color: form.is_public ? '#D4B996' : 'rgba(255,255,255,0.4)' }}>
-            {form.is_public ? 'Public' : 'Hidden'}
-          </strong>
-        </span>
+        <label className="text-sm text-white/70">
+          Profile is <strong className={form.is_public ? 'text-champagne' : 'text-white/40'}>{form.is_public ? 'Public' : 'Hidden'}</strong>
+        </label>
       </div>
 
       {error && <p className="text-red-400 text-xs">{error}</p>}
-      <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-2xl bg-gradient-to-r from-champagne to-[#c8a96e] text-charcoal font-bold text-sm tracking-widest uppercase disabled:opacity-50">
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full py-3 rounded-2xl bg-gradient-to-r from-champagne to-[#c8a96e] text-charcoal font-bold text-sm tracking-widest uppercase hover:shadow-[0_0_20px_rgba(212,185,150,0.3)] transition-all disabled:opacity-50"
+      >
         {saving ? 'Saving…' : 'Save Profile'}
       </button>
     </div>
@@ -322,7 +293,7 @@ function AvailabilityCalendar({ profileId }) {
 
   return (
     <div>
-      <p className="text-xs text-white/40 mb-4">Tap a date to toggle Busy / Available.</p>
+      <p className="text-xs text-white/40 mb-4">Tap a date to toggle Busy / Available. Clients cannot book Busy dates.</p>
       <div className="flex items-center justify-between mb-4">
         <button onClick={() => setViewDate(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 })}
           className="text-champagne text-lg px-2">‹</button>
@@ -352,8 +323,8 @@ function AvailabilityCalendar({ profileId }) {
                 isPast
                   ? 'text-white/20 cursor-not-allowed'
                   : isBusy
-                  ? 'bg-red-500/30 text-red-300 border border-red-500/30'
-                  : 'bg-emerald-500/10 text-emerald-300/80 border border-emerald-500/20'
+                  ? 'bg-red-500/30 text-red-300 hover:bg-red-500/50 border border-red-500/30'
+                  : 'bg-emerald-500/10 text-emerald-300/80 hover:bg-emerald-500/20 border border-emerald-500/20'
               } ${isToggling ? 'scale-90 opacity-50' : ''}`}
             >
               {day}
@@ -361,39 +332,81 @@ function AvailabilityCalendar({ profileId }) {
           );
         })}
       </div>
+
+      <div className="flex gap-4 mt-4 text-[10px] text-white/50">
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-emerald-500/30 inline-block" />Available</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded bg-red-500/30 inline-block" />Busy</span>
+      </div>
     </div>
   );
 }
 
-// ── Bookings List ─────────────────────────────────────────────
+// ── Bookings list ─────────────────────────────────────────────
 function BookingsList({ profileId }) {
   const [bookings, setBookings] = useState([]);
+  const [filter, setFilter] = useState('all');
+
   useEffect(() => {
-    if (profileId) getOwnBookings(profileId).then(setBookings);
+    if (!profileId) return;
+    getOwnBookings(profileId).then(setBookings);
   }, [profileId]);
 
+  const STATUS_COLOR = { pending: 'text-yellow-400', confirmed: 'text-emerald-400', cancelled: 'text-red-400' };
+
+  const filtered = filter === 'all' ? bookings : bookings.filter(b => b.status === filter);
+
   return (
-    <div className="space-y-3">
-      {bookings.length === 0 && <p className="text-white/30 text-center py-6 text-sm">No bookings yet.</p>}
-      {bookings.map(b => (
-        <div key={b.id} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5">
-          <p className="font-medium text-sm">{b.client_name}</p>
-          <p className="text-[11px] text-white/50">{b.booking_date} · {b.time_slot || 'No time'}</p>
-        </div>
-      ))}
+    <div>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {['all','pending','confirmed','cancelled'].map(s => (
+          <button key={s} onClick={() => setFilter(s)}
+            className={`px-3 py-1 rounded-full text-xs capitalize transition-all ${
+              filter === s ? 'bg-champagne text-charcoal' : 'bg-white/5 text-white/50 hover:bg-white/10'
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+      {filtered.length === 0 && <p className="text-white/30 text-sm text-center py-6">No bookings yet.</p>}
+      <div className="space-y-3">
+        {filtered.map(b => (
+          <div key={b.id} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="font-medium text-sm">{b.client_name}</p>
+                <p className="text-[11px] text-white/50 mt-0.5">{b.services?.name ?? 'Service'} · {b.booking_date}</p>
+                {b.time_slot && <p className="text-[10px] text-white/40">⏰ {b.time_slot}</p>}
+                <p className="text-[11px] text-white/40 mt-1">📞 {b.client_phone}</p>
+              </div>
+              <div className="text-right">
+                <span className="text-champagne font-bold text-sm">{formatINR(b.total_price)}</span>
+                <p className={`text-[10px] mt-1 capitalize font-medium ${STATUS_COLOR[b.status]}`}>{b.status}</p>
+              </div>
+            </div>
+            {b.note && <p className="text-[10px] text-white/30 mt-2 border-t border-white/5 pt-2">{b.note}</p>}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-// ── Main Dashboard ───────────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────────────
 export default function Dashboard() {
   const router = useRouter();
-  const [session, setSession] = useState(null);
-  const [profile, setProfile] = useState(null);
+  const [session, setSession]   = useState(null);
+  const [profile, setProfile]   = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [tab, setTab] = useState('profile');
-  const [toast, setToast] = useState({ msg: '', type: 'success' });
+  const [tab, setTab]           = useState('profile');
+  const [toast, setToast]       = useState({ msg: '', type: 'success' });
 
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: '', type: 'success' }), 3000);
+  };
+
+  // Auth check
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -407,36 +420,111 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  // Load profile
   useEffect(() => {
-    if (session?.user?.id) {
-      getOwnProfile(session.user.id).then(setProfile);
-    }
+    if (!session?.user) return;
+    getOwnProfile(session.user.id)
+      .then(setProfile)
+      .catch(console.error);
   }, [session]);
 
-  if (authLoading) return null;
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/login');
+  };
+
+  const TABS = [
+    { id: 'profile',      label: 'Profile',      icon: '👤' },
+    { id: 'services',     label: 'Services',     icon: '✨' },
+    { id: 'availability', label: 'Calendar',     icon: '📅' },
+    { id: 'bookings',     label: 'Bookings',     icon: '📋' },
+  ];
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-charcoal flex items-center justify-center">
+        <p className="text-champagne/60 text-sm animate-pulse tracking-widest">Loading…</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-charcoal text-white font-body pb-20">
-      <Head><title>Dashboard | ArtistHub</title></Head>
+    <>
+      <Head>
+        <title>Dashboard · ArtistHub</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+      </Head>
+
       <Toast msg={toast.msg} type={toast.type} />
-      
-      <header className="px-5 py-6 border-b border-white/5 flex justify-between items-center">
-        <h1 className="font-display text-xl text-champagne">ArtistHub</h1>
-        <button onClick={() => supabase.auth.signOut()} className="text-[10px] uppercase tracking-widest text-white/40">Sign Out</button>
-      </header>
 
-      <nav className="flex px-5 mt-6 gap-6 border-b border-white/5 overflow-x-auto no-scrollbar">
-        {['profile','services','calendar','bookings'].map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`pb-3 text-[11px] uppercase tracking-widest font-bold border-b-2 transition-all ${tab === t ? 'border-champagne text-champagne' : 'border-transparent text-white/30'}`}>{t}</button>
-        ))}
-      </nav>
+      <div className="min-h-screen bg-charcoal text-white font-body">
 
-      <div className="px-5 py-8 max-w-xl mx-auto">
-        {tab === 'profile' && <ProfileEditor profile={profile} userId={session?.user?.id} onSaved={setProfile} />}
-        {tab === 'services' && profile && <ServicesManager profileId={profile.id} />}
-        {tab === 'calendar' && profile && <AvailabilityCalendar profileId={profile.id} />}
-        {tab === 'bookings' && profile && <BookingsList profileId={profile.id} />}
+        {/* ── Top header ─── */}
+        <header className="sticky top-0 z-40 bg-charcoal/95 backdrop-blur border-b border-white/5 px-5 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-lg tracking-wide text-champagne">ArtistHub</h1>
+            <p className="text-[10px] text-white/30">Dashboard</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {profile && (
+              <a href={`/portfolio/${profile.username}`} target="_blank" rel="noopener noreferrer"
+                className="text-[10px] text-champagne/60 hover:text-champagne border border-champagne/20 px-3 py-1.5 rounded-full transition-colors">
+                View Live ↗
+              </a>
+            )}
+            <button onClick={handleSignOut} className="text-[10px] text-white/30 hover:text-white/70 transition-colors">
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        {/* ── Tab nav ─── */}
+        <nav className="sticky top-[61px] z-30 bg-charcoal/95 backdrop-blur border-b border-white/5 px-4 pt-2 pb-0 flex gap-1 overflow-x-auto no-scrollbar">
+          {TABS.map(t => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`flex-shrink-0 flex items-center gap-1.5 px-4 py-2.5 text-xs font-bold tracking-widest uppercase transition-all border-b-2 ${
+                tab === t.id
+                  ? 'border-champagne text-champagne'
+                  : 'border-transparent text-white/40 hover:text-white/70'
+              }`}
+            >
+              <span>{t.icon}</span> {t.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* ── Content ─── */}
+        <div className="max-w-2xl mx-auto px-5 py-8 pb-16">
+          {tab === 'profile' && (
+            <ProfileEditor
+              profile={profile}
+              userId={session?.user?.id}
+              onSaved={(p) => { setProfile(p); showToast('Profile saved! ✨'); }}
+            />
+          )}
+
+          {tab === 'services' && profile && (
+            <ServicesManager profileId={profile.id} />
+          )}
+          {tab === 'services' && !profile && (
+            <p className="text-white/40 text-sm text-center py-12">Save your profile first to manage services.</p>
+          )}
+
+          {tab === 'availability' && profile && (
+            <AvailabilityCalendar profileId={profile.id} />
+          )}
+          {tab === 'availability' && !profile && (
+            <p className="text-white/40 text-sm text-center py-12">Save your profile first.</p>
+          )}
+
+          {tab === 'bookings' && profile && (
+            <BookingsList profileId={profile.id} />
+          )}
+          {tab === 'bookings' && !profile && (
+            <p className="text-white/40 text-sm text-center py-12">No bookings yet.</p>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
-              }
+}
