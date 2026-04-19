@@ -34,148 +34,174 @@ export default function Dashboard() {
       <Head><title>ArtistHub | Dashboard</title></Head>
       
       {/* Header */}
-      <header className="p-6 border-b border-white/5 flex justify-between items-center sticky top-0 bg-[#1A1A1A]/80 backdrop-blur-md z-50">
+      <header className="p-6 flex justify-between items-center bg-[#1A1A1A]/80 backdrop-blur-md sticky top-0 z-30 border-b border-white/5">
         <div>
-          <h1 className="text-xl font-bold tracking-tighter text-[#D4B996] italic">ArtistHub</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Artist Studio</p>
+          <h1 className="text-xl font-bold text-[#D4B996]">Dashboard</h1>
+          <p className="text-[10px] text-white/30 uppercase tracking-widest mt-1">Manage your business</p>
         </div>
-        <button onClick={() => supabase.auth.signOut()} className="text-[10px] uppercase font-bold text-white/40">Sign Out</button>
+        <button onClick={() => supabase.auth.signOut()} className="text-[10px] font-bold uppercase text-red-500/60 tracking-widest px-4 py-2 border border-red-500/10 rounded-full">Logout</button>
       </header>
 
-      {/* Tabs Navigation */}
-      <nav className="flex px-6 mt-4 gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
-        {['profile', 'services', 'calendar', 'bookings'].map(t => (
-          <button 
-            key={t} 
-            onClick={() => setTab(t)} 
-            className={`pb-3 text-[11px] uppercase tracking-widest font-bold transition-all border-b-2 whitespace-nowrap ${
-              tab === t ? 'border-[#D4B996] text-[#D4B996]' : 'border-transparent text-white/30'
-            }`}
-          >
-            {t}
-          </button>
+      {/* Tabs */}
+      <div className="flex px-4 gap-1 mt-4 sticky top-20 z-20">
+        {[
+          ['profile', 'Profile'],
+          ['services', 'Services'],
+          ['calendar', 'Availability'],
+          ['bookings', 'Bookings']
+        ].map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)} className={`flex-1 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all ${tab === id ? 'bg-[#D4B996] text-[#1A1A1A]' : 'bg-white/5 text-white/30'}`}>{label}</button>
         ))}
-      </nav>
+      </div>
 
-      {/* Tab Content */}
-      <main className="p-6 max-w-xl mx-auto">
-        {tab === 'profile' && <ProfileEditor profile={profile} userId={session?.user?.id} onSaved={setProfile} />}
-        {tab === 'services' && profile && <ServicesManager profileId={profile.id} />}
-        {tab === 'calendar' && profile && <CalendarManager profileId={profile.id} />}
-        {tab === 'bookings' && profile && <BookingsList profileId={profile.id} />}
-        
-        {tab !== 'profile' && !profile && (
-          <div className="text-center py-20 border border-dashed border-white/10 rounded-3xl">
-            <p className="text-white/40 text-sm">Pehle Profile tab mein apni jaankari save karein.</p>
-          </div>
+      <main className="p-5 max-w-xl mx-auto">
+        {tab === 'profile' && profile && (
+          <ProfileTab profile={profile} onUpdate={setProfile} />
+        )}
+        {tab === 'services' && profile && (
+          <ServicesTab profileId={profile.id} />
+        )}
+        {tab === 'calendar' && profile && (
+          <CalendarTab profileId={profile.id} />
+        )}
+        {tab === 'bookings' && profile && (
+          <BookingsList profileId={profile.id} />
         )}
       </main>
     </div>
   );
 }
 
-// --- 1. Profile Editor Component ---
-function ProfileEditor({ profile, userId, onSaved }) {
-  const [f, setF] = useState({
-    username: profile?.username || '', full_name: profile?.full_name || '',
-    tagline: profile?.tagline || '', bio: profile?.bio || '',
-    avatar_url: profile?.avatar_url || '', upi_qr_url: profile?.upi_qr_url || '',
-    portfolio_images: (profile?.portfolio_images || []).join('\n'),
-    phone: profile?.phone || ''
-  });
+// --- 1. Profile Tab Component ---
+function ProfileTab({ profile, onUpdate }) {
+  const [form, setForm] = useState(profile);
+  const [saving, setSaving] = useState(false);
 
   const save = async () => {
-    if(!f.username) return alert("Username required!");
-    const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
-    const res = await upsertProfile(userId, { ...f, portfolio_images: imgs });
-    onSaved(res); alert("Profile Updated! ✨");
+    setSaving(true);
+    try {
+      // Yahan upi_id ko bhi upsertProfile mein bheja ja raha hai
+      await upsertProfile(form);
+      onUpdate(form);
+      alert("Profile Saved!");
+    } catch (e) { alert("Error!"); }
+    finally { setSaving(false); }
   };
-
-  const copyLink = () => {
-    const link = `${window.location.origin}/portfolio/${profile.username}`;
-    navigator.clipboard.writeText(link);
-    alert("Link copied! 📋");
-  };
-
-  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none transition-all";
 
   return (
-    <div className="space-y-4">
-      <input placeholder="Username (Unique)" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
-      <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
-      <input placeholder="Phone (with country code)" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
-      <input placeholder="Tagline" value={f.tagline} onChange={e => setF({...f, tagline: e.target.value})} className={inputStyle} />
-      <textarea placeholder="Portfolio Images (URLs, one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} rows={4} className={inputStyle} />
-      <input placeholder="Avatar URL" value={f.avatar_url} onChange={e => setF({...f, avatar_url: e.target.value})} className={inputStyle} />
-      <input placeholder="UPI QR Image URL" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
-      
-      <button onClick={save} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl uppercase tracking-widest text-xs shadow-lg">Save Profile</button>
-
-      {/* Share Section */}
-      {profile?.username && (
-        <div className="mt-10 p-6 bg-white/5 border border-[#D4B996]/20 rounded-3xl text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Your Live Portfolio</p>
-          <div className="flex gap-2">
-            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold">View Live</button>
-            <button onClick={copyLink} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold">Copy Link</button>
-          </div>
+    <div className="space-y-6 animate-fadeIn">
+      <div className="bg-white/5 p-6 rounded-3xl border border-white/10 space-y-5">
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.2em] text-[#D4B996] ml-1">Full Name</label>
+          <input className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none focus:border-[#D4B996]/50" value={form.full_name || ''} onChange={e=>setForm({...form, full_name:e.target.value})} />
         </div>
-      )}
+        
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.2em] text-[#D4B996] ml-1">WhatsApp Phone (91...)</label>
+          <input className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none focus:border-[#D4B996]/50" value={form.phone || ''} onChange={e=>setForm({...form, phone:e.target.value})} />
+        </div>
+
+        {/* NAYA UPI ID SECTION */}
+        <div className="space-y-2 p-4 bg-[#D4B996]/5 border border-[#D4B996]/20 rounded-2xl">
+          <label className="text-[10px] uppercase tracking-[0.2em] text-[#D4B996] font-bold">UPI ID (Deep Link Payment)</label>
+          <input 
+            className="w-full bg-[#1A1A1A] p-4 rounded-xl border border-white/5 outline-none focus:border-[#D4B996] mt-2 font-mono text-xs" 
+            placeholder="example@okicici"
+            value={form.upi_id || ''} 
+            onChange={e=>setForm({...form, upi_id:e.target.value})} 
+          />
+          <p className="text-[8px] text-white/30 italic mt-1">Is ID se PhonePe/GPay direct open hoga.</p>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.2em] text-[#D4B996] ml-1">UPI QR Link (Drive)</label>
+          <input className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none focus:border-[#D4B996]/50" value={form.upi_qr_url || ''} onChange={e=>setForm({...form, upi_qr_url:e.target.value})} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.2em] text-[#D4B996] ml-1">Avatar Image URL</label>
+          <input className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none focus:border-[#D4B996]/50" value={form.avatar_url || ''} onChange={e=>setForm({...form, avatar_url:e.target.value})} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.2em] text-[#D4B996] ml-1">Cover Image URL</label>
+          <input className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none focus:border-[#D4B996]/50" value={form.cover_url || ''} onChange={e=>setForm({...form, cover_url:e.target.value})} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-[9px] uppercase tracking-[0.2em] text-[#D4B996] ml-1">Professional Tagline</label>
+          <textarea className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none focus:border-[#D4B996]/50 h-24 text-sm" value={form.tagline || ''} onChange={e=>setForm({...form, tagline:e.target.value})} />
+        </div>
+
+        <button onClick={save} disabled={saving} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl shadow-xl shadow-[#D4B996]/10 active:scale-95 transition-all">
+          {saving ? 'Saving...' : 'Save Profile Changes'}
+        </button>
+      </div>
     </div>
   );
 }
 
-// --- 2. Services Manager Component ---
-function ServicesManager({ profileId }) {
+// --- 2. Services Tab Component ---
+function ServicesTab({ profileId }) {
   const [list, setList] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', price: '', duration: '' });
+  const [showForm, setShowForm] = useState(false);
+  const [edit, setEdit] = useState({ name: '', price: '' });
 
-  const load = useCallback(async () => setList(await getServices(profileId)), [profileId]);
+  const load = useCallback(() => getServices(profileId).then(setList), [profileId]);
   useEffect(() => { load(); }, [load]);
 
   const add = async () => {
-    if(!form.name || !form.price) return alert("Fill Name and Price");
-    await upsertService(profileId, { ...form, price: parseFloat(form.price) });
-    setShowAdd(false); setForm({ name: '', price: '', duration: '' }); load();
+    if (!edit.name || !edit.price) return;
+    await upsertService({ ...edit, profile_id: profileId });
+    setEdit({ name: '', price: '' }); setShowForm(false); load();
   };
+
+  const remove = async (id) => { if(confirm("Delete?")) { await deleteService(id); load(); } };
 
   return (
     <div className="space-y-4">
-      {list.map(s => (
-        <div key={s.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center">
-          <div><p className="font-bold text-[#D4B996]">{s.name}</p><p className="text-[10px] text-white/40">{formatINR(s.price)} · {s.duration}</p></div>
-          <button onClick={async () => { if(confirm('Delete?')) { await deleteService(s.id); load(); } }} className="text-red-500/50 text-xs">Delete</button>
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-xs uppercase tracking-widest text-white/40">My Services</h3>
+        <button onClick={() => setShowForm(!showForm)} className="text-[10px] font-bold uppercase text-[#D4B996] bg-[#D4B996]/10 px-4 py-2 rounded-full">+ Add New</button>
+      </div>
+      
+      {showForm && (
+        <div className="p-5 bg-[#D4B996]/5 border border-[#D4B996]/20 rounded-3xl space-y-4 animate-fadeIn">
+          <input placeholder="Service Name (e.g. Bridal Makeup)" className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none" value={edit.name} onChange={e=>setEdit({...edit, name:e.target.value})} />
+          <input placeholder="Price (INR)" type="number" className="w-full bg-[#1A1A1A] p-4 rounded-2xl border border-white/5 outline-none" value={edit.price} onChange={e=>setEdit({...edit, price:e.target.value})} />
+          <button onClick={add} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl">Add Service</button>
         </div>
-      ))}
-      {showAdd ? (
-        <div className="p-6 bg-white/5 border border-[#D4B996]/20 rounded-3xl space-y-3">
-          <input placeholder="Service Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none" />
-          <input placeholder="Price" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none" />
-          <input placeholder="Duration (e.g. 1 hr)" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none" />
-          <button onClick={add} className="w-full py-3 bg-white text-black font-bold rounded-xl text-xs uppercase">Add Service</button>
-        </div>
-      ) : (
-        <button onClick={() => setShowAdd(true)} className="w-full py-4 border border-dashed border-[#D4B996]/30 text-[#D4B996] rounded-3xl text-xs uppercase tracking-widest">+ New Service</button>
       )}
+
+      <div className="grid gap-3">
+        {list.map(s => (
+          <div key={s.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center">
+            <div>
+              <p className="font-bold text-sm">{s.name}</p>
+              <p className="text-xs text-[#D4B996] mt-0.5">{formatINR(s.price)}</p>
+            </div>
+            <button onClick={() => remove(s.id)} className="text-red-500/50 p-2">✕</button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-// --- 3. Calendar Manager Component ---
-function CalendarManager({ profileId }) {
+// --- 3. Calendar Tab Component ---
+function CalendarTab({ profileId }) {
   const [map, setMap] = useState({});
+  const days = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() + i); return d.toISOString().split('T')[0];
+  });
+
   useEffect(() => { getAvailMap(profileId).then(setMap); }, [profileId]);
 
-  const toggle = async (d) => {
-    const res = await toggleDate(profileId, d, map[d] || 'available');
-    setMap(prev => ({...prev, [d]: res}));
+  const toggle = async (date) => {
+    const isBusy = map[date] === 'busy';
+    setMap({ ...map, [date]: isBusy ? 'available' : 'busy' });
+    await toggleDate(profileId, date, !isBusy);
   };
-
-  const days = Array.from({length: 14}, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() + i);
-    return d.toISOString().split('T')[0];
-  });
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -199,14 +225,17 @@ function BookingsList({ profileId }) {
       {list.map(b => (
         <div key={b.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl">
           <div className="flex justify-between items-start mb-1">
-            <p className="text-[#D4B996] font-bold text-sm">{b.client_name}</p>
-            <p className="text-[#D4B996] font-bold text-sm">{formatINR(b.total_price)}</p>
+            <p className="text-[#D4B996] font-bold">{b.client_name}</p>
+            <span className="text-[9px] bg-white/5 px-2 py-1 rounded-md text-white/40 uppercase tracking-tighter italic">Pending</span>
           </div>
-          <p className="text-[10px] text-white/50 uppercase tracking-widest">{b.service_name} · {b.booking_date}</p>
-          <p className="text-[10px] text-white/30 mt-2 italic">📞 {b.client_phone}</p>
+          <p className="text-[11px] text-white/60">{b.client_phone}</p>
+          <div className="mt-3 flex justify-between items-center border-t border-white/5 pt-3">
+            <p className="text-[10px] uppercase text-white/30">{new Date(b.booking_date).toLocaleDateString()}</p>
+            <p className="text-xs font-bold text-emerald-400">{formatINR(b.total_price)}</p>
+          </div>
+          {b.note && <p className="mt-2 text-[9px] text-white/20 italic">{b.note}</p>}
         </div>
       ))}
     </div>
   );
-      }
-            
+ }
