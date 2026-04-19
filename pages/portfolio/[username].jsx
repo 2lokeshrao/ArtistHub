@@ -511,10 +511,11 @@ export default function PortfolioPage() {
     <h2 className="font-display text-[10px] tracking-[0.25em] text-champagne mb-6 uppercase">Pay via UPI</h2>
     <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl">
       <img 
-        src={transformImageUrl(profile.upi_qr_url)} 
-        alt="UPI QR Code" 
-        className="w-full max-w-[200px] h-auto object-contain mx-auto" // Added h-auto and object-contain
-      />
+  src={transformDriveLink(profile.upi_qr_url)} 
+  alt="UPI QR" 
+  className="w-full max-w-[220px] h-auto object-contain mx-auto" 
+/>
+
     </div>
     <p className="text-[10px] text-white/30 mt-4 uppercase tracking-widest italic">Scan to Pay Advance</p>
   </section>
