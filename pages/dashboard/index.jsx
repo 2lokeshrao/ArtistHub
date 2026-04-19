@@ -51,7 +51,6 @@ function ProfileEditor({ profile, userId, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // यह फंक्शन कीबोर्ड को हटने से रोकेगा
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(f => ({ ...f, [name]: value }));
@@ -137,15 +136,24 @@ function ProfileEditor({ profile, userId, onSaved }) {
       <input name="youtube_url" placeholder="YouTube URL" value={form.youtube_url} onChange={handleChange} className={inputClass} />
       <input name="snapchat_url" placeholder="Snapchat URL" value={form.snapchat_url} onChange={handleChange} className={inputClass} />
 
-      <div className="flex items-center gap-3">
+      {/* --- यहाँ प्रोफाइल टॉगल कोड पेस्ट किया गया है --- */}
+      <div className="flex items-center gap-3 py-2">
         <button
+          type="button"
           onClick={() => setForm(f => ({ ...f, is_public: !f.is_public }))}
-          className={`relative w-10 h-5 rounded-full transition-colors ${form.is_public ? 'bg-champagne' : 'bg-white/20'}`}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${form.is_public ? 'bg-champagne' : 'bg-white/20'}`}
         >
-          <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${form.is_public ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          <span
+            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${form.is_public ? 'translate-x-5' : 'translate-x-0'}`}
+          />
         </button>
-        <label className="text-sm text-white/70">Profile is {form.is_public ? 'Public' : 'Hidden'}</label>
+        <span className="text-sm text-white/70">
+          Profile is <strong className={form.is_public ? 'text-champagne' : 'text-white/40'}>
+            {form.is_public ? 'Public' : 'Hidden'}
+          </strong>
+        </span>
       </div>
+      {/* --------------------------------------------- */}
 
       {error && <p className="text-red-400 text-xs">{error}</p>}
       <button onClick={handleSave} disabled={saving} className="w-full py-3 rounded-2xl bg-gradient-to-r from-champagne to-[#c8a96e] text-charcoal font-bold text-sm tracking-widest uppercase disabled:opacity-50">
@@ -154,6 +162,7 @@ function ProfileEditor({ profile, userId, onSaved }) {
     </div>
   );
 }
+
 
 // ── Services Manager ──────────────────────────────────────────
 function ServicesManager({ profileId }) {
