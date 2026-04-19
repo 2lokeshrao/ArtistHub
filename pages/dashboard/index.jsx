@@ -163,7 +163,6 @@ function ProfileEditor({ profile, userId, onSaved }) {
   );
 }
 
-
 // ── Services Manager ──────────────────────────────────────────
 function ServicesManager({ profileId }) {
   const [services, setServices] = useState([]);
