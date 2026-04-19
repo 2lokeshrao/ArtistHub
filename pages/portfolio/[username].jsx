@@ -58,7 +58,7 @@ function PortfolioGrid({ images }) {
             style={{ gridRow: i === 0 ? 'span 2' : undefined, gridColumn: i === 0 ? 'span 2' : undefined }}
           >
             <img
-              src={url}
+              src={transformDriveLink(url)}
               alt={`Portfolio ${i + 1}`}
               className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
               loading="lazy"
@@ -405,7 +405,7 @@ export default function PortfolioPage() {
         {/* ── Cover image ─── */}
         <div className="relative h-48 w-full overflow-hidden">
           {profile.cover_url
-            ? <img src={profile.cover_url} alt="Cover" className="w-full h-full object-cover" />
+            ? <img <img src={transformDriveLink(profile.cover_url)} alt="Cover" className="w-full h-full object-cover" />
             : <div className="w-full h-full bg-gradient-to-br from-[#2c2318] via-charcoal to-[#1a1a1a]" />
           }
           <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-charcoal/40 to-transparent" />
@@ -415,7 +415,7 @@ export default function PortfolioPage() {
         <div className="relative px-5 -mt-16 pb-2">
           <div className="flex items-end gap-4">
             {profile.avatar_url
-              ? <img src={profile.avatar_url} alt={profile.full_name} className="w-24 h-24 rounded-2xl object-cover border-2 border-champagne/30 shadow-2xl flex-shrink-0" />
+              ? <img src={transformDriveLink(profile.avatar_url)} alt={profile.full_name} className="w-24 h-24 rounded-2xl object-cover border-2 border-champagne/30 shadow-2xl flex-shrink-0" />
               : <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-champagne/30 to-champagne/10 flex items-center justify-center text-3xl flex-shrink-0">✨</div>
             }
             <div className="pb-1">
@@ -505,15 +505,17 @@ export default function PortfolioPage() {
                 </section>
               )}
 
-              {/* UPI QR */}
-              {profile.upi_qr_url && (
-                <section className="px-5 py-4 text-center">
-                  <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-4 uppercase">Pay via UPI</h2>
-                  <img src={profile.upi_qr_url} alt="UPI QR Code" className="w-40 h-40 mx-auto rounded-xl object-contain bg-white p-2 shadow-xl" />
-                </section>
-              )}
-            </>
-          )}
+              {/* UPI QR Section */}
+{profile.upi_qr_url && (
+  <section className="px-5 py-4 text-center">
+    <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-4 uppercase">Pay via UPI</h2>
+    <img 
+      src={transformDriveLink(profile.upi_qr_url)} 
+      alt="UPI QR Code" 
+      className="w-40 h-40 mx-auto rounded-xl object-contain bg-white p-2 shadow-xl" 
+    />
+  </section>
+)}
 
           {tab === 'book' && (
             <section className="px-5 py-6">
