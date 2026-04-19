@@ -479,4 +479,48 @@ export default function PortfolioPage() {
               {/* Services */}
               {services.length > 0 && (
                 <section className="px-5 py-4">
-                  <h2 className="font-display text-xs
+                  <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-4 uppercase">Services</h2>
+                  <div className="space-y-2">
+                    {services.map(svc => (
+                      <div key={svc.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5">
+                        <div>
+                          <p className="text-sm font-medium">{svc.name}</p>
+                          {svc.description && <p className="text-xs text-white/40 mt-0.5">{svc.description}</p>}
+                          {svc.duration && <p className="text-[10px] text-white/30 mt-0.5">⏱ {svc.duration}</p>}
+                        </div>
+                        <span className="text-base font-bold text-champagne ml-4 flex-shrink-0">{formatINR(svc.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* UPI QR */}
+              {profile.upi_qr_url && (
+                <section className="px-5 py-4 text-center">
+                  <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-4 uppercase">Pay via UPI</h2>
+                  <img src={profile.upi_qr_url} alt="UPI QR Code" className="w-40 h-40 mx-auto rounded-xl object-contain bg-white p-2 shadow-xl" />
+                </section>
+              )}
+            </>
+          )}
+
+          {tab === 'book' && (
+            <section className="px-5 py-6">
+              <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-5 uppercase">Book an Appointment</h2>
+              {services.length > 0
+                ? <BookingForm profile={profile} services={services} busyDates={busyDates} />
+                : <p className="text-white/40 text-sm text-center py-8">No services available at the moment.</p>
+              }
+            </section>
+          )}
+        </div>
+
+        {/* ── Footer ─── */}
+        <div className="text-center py-6 border-t border-white/5 text-[10px] text-white/20 tracking-widest">
+          ARTISTHUB · DIGITAL PORTFOLIO
+        </div>
+      </main>
+    </>
+  );
+}
