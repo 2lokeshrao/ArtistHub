@@ -508,7 +508,7 @@ export default function PortfolioPage() {
               {/* UPI QR Section Fix */}
               {profile.upi_qr_url && (
                 <section className="px-5 py-8 text-center bg-white/5 rounded-3xl mx-5 mb-10 border border-white/5 mt-6">
-                  <h2 className="font-display text-[10px] tracking-[0.25em] text-champagne mb-6 uppercase">Pay via UPI</h2>
+                  <h2 className="font-display text-[12px] tracking-[0.25em] text-champagne mb-6 uppercase">Pay via UPI</h2>
                   <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl">
                     <img 
                       src={transformDriveLink(profile.upi_qr_url)} 
@@ -536,6 +536,7 @@ export default function PortfolioPage() {
         {/* ── Footer ─── */}
         <div className="text-center py-6 border-t border-white/5 text-[10px] text-white/20 tracking-widest uppercase">
           ARTISTHUB · DIGITAL PORTFOLIO &copy; 2026
+          Made By 🤞 Lucky
         </div>
       </main>
     </>
