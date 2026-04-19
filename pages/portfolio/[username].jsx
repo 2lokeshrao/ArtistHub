@@ -232,7 +232,7 @@ export default function PortfolioPage() {
       </div>
       
       <footer className="text-center py-6 border-t border-white/5 text-[10px] text-white/20 tracking-widest uppercase">
-        ArtistHub · Digital Portfolio &copy; 2026
+        ArtistHub · Digital Portfolio &copy; 2026<br/>
         Made by 🤞 Lucky
       </footer>
     </main>
