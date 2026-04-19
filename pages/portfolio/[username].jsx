@@ -505,17 +505,21 @@ export default function PortfolioPage() {
                 </section>
               )}
 
-              {/* UPI QR Section */}
+              {/* UPI QR Section Fix */}
 {profile.upi_qr_url && (
-  <section className="px-5 py-4 text-center">
-    <h2 className="font-display text-xs tracking-[0.25em] text-champagne mb-4 uppercase">Pay via UPI</h2>
-    <img 
-      src={transformDriveLink(profile.upi_qr_url)} 
-      alt="UPI QR Code" 
-      className="w-40 h-40 mx-auto rounded-xl object-contain bg-white p-2 shadow-xl" 
-    />
+  <section className="px-5 py-8 text-center bg-white/5 rounded-3xl mx-5 mb-10 border border-white/5">
+    <h2 className="font-display text-[10px] tracking-[0.25em] text-champagne mb-6 uppercase">Pay via UPI</h2>
+    <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl">
+      <img 
+        src={transformImageUrl(profile.upi_qr_url)} 
+        alt="UPI QR Code" 
+        className="w-full max-w-[200px] h-auto object-contain mx-auto" // Added h-auto and object-contain
+      />
+    </div>
+    <p className="text-[10px] text-white/30 mt-4 uppercase tracking-widest italic">Scan to Pay Advance</p>
   </section>
 )}
+
 
           {tab === 'book' && (
             <section className="px-5 py-6">
