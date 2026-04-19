@@ -141,21 +141,63 @@ function ProfileEditor({ profile, userId, onSaved }) {
 // ── Services Manager ──────────────────
 function ServicesManager({ profileId }) {
   const [services, setServices] = useState([]);
-  const load = useCallback(async () => { if (profileId) setServices(await getServicesByProfileId(profileId)); }, [profileId]);
-  useEffect(() => { load(); }, [load]);
+  const [editingId, setEditingId] = useState(null);
+  const [form, setForm] = useState({ name: '', price: '', duration: '', category: 'Other' });
+  const [loading, setLoading] = useState(false);
+
+  const loadServices = useCallback(async () => {
+    if (!profileId) return;
+    const data = await getServicesByProfileId(profileId);
+    setServices(data);
+  }, [profileId]);
+
+  useEffect(() => { loadServices(); }, [loadServices]);
+
+  const handleSave = async () => {
+    if (!form.name || !form.price) return alert("Name aur Price bharna zaroori hai!");
+    setLoading(true);
+    try {
+      await upsertService(profileId, {
+        ...(editingId !== 'new' ? { id: editingId } : {}),
+        ...form,
+        price: parseFloat(form.price),
+      });
+      setEditingId(null);
+      setForm({ name: '', price: '', duration: '', category: 'Other' });
+      loadServices();
+    } catch (e) { alert(e.message); }
+    finally { setLoading(false); }
+  };
 
   return (
     <div className="space-y-4">
       {services.map(svc => (
         <div key={svc.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5">
-          <div className="text-sm font-medium">{svc.name} <span className="text-[10px] text-white/40 block">{formatINR(svc.price)}</span></div>
-          <button onClick={async () => { if(confirm('Delete?')) { await deleteService(svc.id); load(); } }} className="text-red-400 text-xs">🗑</button>
+          <div>
+            <p className="font-medium text-sm">{svc.name}</p>
+            <p className="text-[10px] text-white/40">{formatINR(svc.price)} · {svc.duration}</p>
+          </div>
+          <button onClick={async () => { if(confirm('Delete?')) { await deleteService(svc.id); loadServices(); } }} className="text-red-400 text-xs">🗑</button>
         </div>
       ))}
-      <button onClick={() => alert('Add Service logic remains same')} className="w-full py-3 border border-dashed border-champagne/30 text-champagne/60 text-sm rounded-2xl">+ Add Service</button>
+
+      {editingId ? (
+        <div className="bg-white/5 border border-champagne/30 rounded-2xl p-4 space-y-3">
+          <input placeholder="Service Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" />
+          <input placeholder="Price (₹)" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" />
+          <input placeholder="Duration (e.g. 1 hr)" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white" />
+          <div className="flex gap-2">
+            <button onClick={handleSave} disabled={loading} className="flex-1 py-2 bg-champagne text-charcoal rounded-xl text-xs font-bold uppercase">{loading ? 'Saving...' : 'Save'}</button>
+            <button onClick={() => setEditingId(null)} className="px-4 py-2 border border-white/10 text-white/50 rounded-xl text-xs">Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setEditingId('new')} className="w-full py-3 border border-dashed border-champagne/30 text-champagne/60 text-sm rounded-2xl">+ Add Service</button>
+      )}
     </div>
   );
 }
+
 
 // ── Availability Calendar ──────────────────
 function AvailabilityCalendar({ profileId }) {
