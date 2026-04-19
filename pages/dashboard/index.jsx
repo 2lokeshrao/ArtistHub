@@ -26,7 +26,7 @@ function Toast({ msg, type }) {
   );
 }
 
-// ── Profile Editor (Keyboard & Toggle Fixed) ──────────────────
+// ── Profile Editor ──────────────────
 function ProfileEditor({ profile, userId, onSaved }) {
   const [form, setForm] = useState({
     username: profile?.username || '',
@@ -55,6 +55,7 @@ function ProfileEditor({ profile, userId, onSaved }) {
 
   const handleSave = async () => {
     if (!form.username.trim()) { setError('Username is required.'); return; }
+    if (!userId) { setError('Session error: Please login again.'); return; }
     setSaving(true);
     setError('');
     try {
@@ -137,7 +138,7 @@ function ProfileEditor({ profile, userId, onSaved }) {
   );
 }
 
-// ── Services Manager ──────────────────────────────────────────
+// ── Services Manager ──────────────────
 function ServicesManager({ profileId }) {
   const [services, setServices] = useState([]);
   const load = useCallback(async () => { if (profileId) setServices(await getServicesByProfileId(profileId)); }, [profileId]);
@@ -156,7 +157,98 @@ function ServicesManager({ profileId }) {
   );
 }
 
-// ── Main Dashboard ───────────────────────────────────────────
+// ── Availability Calendar ──────────────────
+function AvailabilityCalendar({ profileId }) {
+  const [viewDate, setViewDate] = useState(() => {
+    const d = new Date(); return { year: d.getFullYear(), month: d.getMonth() };
+  });
+  const [availMap, setAvailMap] = useState({});
+  const [toggling, setToggling] = useState(null);
+
+  const { year, month } = viewDate;
+
+  useEffect(() => {
+    if (!profileId) return;
+    getAvailabilityMap(profileId).then(setAvailMap);
+  }, [profileId, viewDate]);
+
+  const daysInMonth = getDaysInMonth(year, month);
+  const firstDay = new Date(year, month, 1).getDay();
+  const monthName = new Date(year, month).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  const todayISO = toISO(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+  const handleToggle = async (day) => {
+    const iso = toISO(year, month, day);
+    if (iso < todayISO) return;
+    setToggling(iso);
+    try {
+      const current = availMap[iso] || 'available';
+      const newStatus = await toggleDateStatus(profileId, iso, current);
+      setAvailMap(m => ({ ...m, [iso]: newStatus }));
+    } catch (e) { alert(e.message); }
+    finally { setToggling(null); }
+  };
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div>
+      <p className="text-xs text-white/40 mb-4">Tap a date to toggle Busy / Available.</p>
+      <div className="flex items-center justify-between mb-4">
+        <button onClick={() => setViewDate(v => v.month === 0 ? { year: v.year - 1, month: 11 } : { year: v.year, month: v.month - 1 })}
+          className="text-champagne text-lg px-2">‹</button>
+        <span className="text-sm font-medium">{monthName}</span>
+        <button onClick={() => setViewDate(v => v.month === 11 ? { year: v.year + 1, month: 0 } : { year: v.year, month: v.month + 1 })}
+          className="text-champagne text-lg px-2">›</button>
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          if (!day) return <div key={i} />;
+          const iso = toISO(year, month, day);
+          const status = availMap[iso] || 'available';
+          const isBusy = status === 'busy';
+          const isPast = iso < todayISO;
+          return (
+            <button key={i} onClick={() => handleToggle(day)} disabled={isPast || toggling === iso}
+              className={`w-full aspect-square rounded-lg text-[11px] font-medium transition-all flex items-center justify-center ${
+                isPast ? 'text-white/20' : isBusy ? 'bg-red-500/30 text-red-300' : 'bg-emerald-500/10 text-emerald-300/80'
+              }`}
+            >
+              {day}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Bookings List ──────────────────
+function BookingsList({ profileId }) {
+  const [bookings, setBookings] = useState([]);
+  useEffect(() => {
+    if (profileId) getOwnBookings(profileId).then(setBookings);
+  }, [profileId]);
+
+  return (
+    <div className="space-y-3">
+      {bookings.length === 0 && <p className="text-white/30 text-center py-6 text-sm">No bookings yet.</p>}
+      {bookings.map(b => (
+        <div key={b.id} className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3.5 flex justify-between">
+          <div>
+            <p className="font-medium text-sm">{b.client_name}</p>
+            <p className="text-[11px] text-white/50">{b.booking_date} · {b.time_slot}</p>
+          </div>
+          <span className="text-champagne font-bold text-sm">{formatINR(b.total_price)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main Dashboard ──────────────────
 export default function Dashboard() {
   const router = useRouter();
   const [session, setSession] = useState(null);
@@ -164,6 +256,11 @@ export default function Dashboard() {
   const [authLoading, setAuthLoading] = useState(true);
   const [tab, setTab] = useState('profile');
   const [toast, setToast] = useState({ msg: '', type: 'success' });
+
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast({ msg: '', type: 'success' }), 3000);
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -180,7 +277,7 @@ export default function Dashboard() {
     if (session?.user?.id) getOwnProfile(session.user.id).then(setProfile).catch(console.error);
   }, [session]);
 
-  if (authLoading) return null;
+  if (authLoading) return <div className="min-h-screen bg-charcoal flex items-center justify-center text-champagne">Loading...</div>;
 
   const TABS = [
     { id: 'profile', label: 'Profile', icon: '👤' },
@@ -204,14 +301,31 @@ export default function Dashboard() {
 
       <nav className="max-w-2xl mx-auto px-5 mt-6 flex gap-1 border-b border-white/5 overflow-x-auto no-scrollbar">
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`pb-3 px-4 text-[11px] uppercase font-bold border-b-2 whitespace-nowrap ${tab === t.id ? 'border-champagne text-champagne' : 'border-transparent text-white/40'}`}>{t.label}</button>
+          <button 
+            key={t.id} 
+            onClick={() => setTab(t.id)} 
+            className={`pb-3 px-4 text-[11px] uppercase font-bold border-b-2 whitespace-nowrap transition-all ${tab === t.id ? 'border-champagne text-champagne' : 'border-transparent text-white/40'}`}
+          >
+            {t.icon} {t.label}
+          </button>
         ))}
       </nav>
 
       <div className="max-w-2xl mx-auto px-5 py-8 pb-16">
-        {tab === 'profile' && <ProfileEditor profile={profile} userId={session?.user?.id} onSaved={setProfile} />}
+        {tab === 'profile' && (
+          <ProfileEditor 
+            profile={profile} 
+            userId={session?.user?.id} 
+            onSaved={(p) => { setProfile(p); showToast('Profile saved! ✨'); }} 
+          />
+        )}
         {tab === 'services' && profile && <ServicesManager profileId={profile.id} />}
-        {/* Availability and Bookings remain consistent with your previous setup */}
+        {tab === 'availability' && profile && <AvailabilityCalendar profileId={profile.id} />}
+        {tab === 'bookings' && profile && <BookingsList profileId={profile.id} />}
+        
+        {tab !== 'profile' && !profile && (
+          <p className="text-white/40 text-sm text-center py-12">Pehle Profile tab mein apni jaankari save karein.</p>
+        )}
       </div>
     </div>
   );
