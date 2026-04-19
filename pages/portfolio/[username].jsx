@@ -16,6 +16,16 @@ import {
 import { openWhatsApp } from '../../lib/whatsapp';
 import { generateArtistPDF } from '../../lib/generatePDF';
 
+// --- Yeh function Drive link ko image mein badal deta hai ---
+function transformDriveLink(url) {
+  if (!url || typeof url !== 'string') return url;
+  if (url.includes('drive.google.com')) {
+    const fileId = url.split('/d/')[1]?.split('/')[0] || url.split('id=')[1]?.split('&')[0];
+    if (fileId) return `https://drive.google.com/thumbnail?id=${fileId}&sz=w1000`;
+  }
+  return url;
+}
+
 // ── Tiny helpers ─────────────────────────────────────────────
 function formatINR(n) {
   return `₹${Number(n).toLocaleString('en-IN')}`;
