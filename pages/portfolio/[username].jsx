@@ -39,7 +39,7 @@ function PortfolioGrid({ images }) {
         {images.slice(0, 9).map((url, i) => (
           <div key={i} className="aspect-square rounded-sm overflow-hidden bg-charcoal/20"
                style={{ gridRow: i === 0 ? 'span 2' : undefined, gridColumn: i === 0 ? 'span 2' : undefined }}>
-            <img src={transformDriveLink(url)} alt={`Work ${i+1}`} className="w-full h-full object-cover transition-all hover:scale-105" loading="lazy" />
+            <img src={transformDriveLink(url)} alt="Work" className="w-full h-full object-cover transition-all hover:scale-105" loading="lazy" />
           </div>
         ))}
       </div>
@@ -74,7 +74,7 @@ function BookingCalendar({ busyDates, selectedDate, onSelect }) {
           const isSelected = iso === selectedDate;
           return (
             <button key={i} onClick={() => onSelect(iso)} disabled={isBusy || iso < today()}
-              className={`aspect-square rounded-lg text-[11px] ${isSelected ? 'bg-champagne text-charcoal' : isBusy ? 'text-white/20 line-through' : 'text-white/80 hover:bg-white/10'}`}>
+              className={`aspect-square rounded-lg text-[11px] ${isSelected ? 'bg-champagne text-charcoal shadow-lg scale-105' : isBusy ? 'text-white/20 line-through' : 'text-white/80 hover:bg-white/10'}`}>
               {day}
             </button>
           );
@@ -84,7 +84,7 @@ function BookingCalendar({ busyDates, selectedDate, onSelect }) {
   );
 }
 
-// ── Updated Booking Form (Step 4 Logic) ──
+// ── Updated Booking Form with Dynamic UPI ID Logic ──
 function BookingForm({ profile, services, busyDates }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({ selectedService: null, selectedDate: '', clientName: '', clientPhone: '', utr: '' });
@@ -95,58 +95,110 @@ function BookingForm({ profile, services, busyDates }) {
   const advance = Math.round(totalPrice * 0.3);
   const pending = totalPrice - advance;
 
+  // DYNAMIC UPI LOGIC: Using profile.upi_id from database
+  const upiId = profile.upi_id || "payment@upi"; // Fallback if ID is missing
+  const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(profile.full_name)}&am=${advance}&cu=INR&tn=AdvanceBooking`;
+
   const handleSubmit = async () => {
+    if (!form.utr || form.utr.length < 10) return;
     setLoading(true);
     try {
-      await createBooking({ ...form, profile_id: profile.id, total_price: totalPrice, note: `UTR: ${form.utr}` });
+      await createBooking({ 
+        profile_id: profile.id,
+        service_id: form.selectedService.id,
+        client_name: form.clientName,
+        client_phone: form.clientPhone,
+        booking_date: form.selectedDate,
+        total_price: totalPrice,
+        note: `Advance: ${advance}, UTR: ${form.utr}, UPI: ${upiId}` 
+      });
       setSuccess(true);
-      openWhatsApp(profile.phone, { ...form, advance, pending, serviceName: form.selectedService.name });
-    } catch (e) { alert("Error!"); } finally { setLoading(false); }
+      if (profile.phone) {
+        openWhatsApp(profile.phone, { ...form, advance, pending, serviceName: form.selectedService.name });
+      }
+    } catch (e) { alert("Error in booking."); } finally { setLoading(false); }
   };
 
   if (success) return (
-    <div className="text-center py-10 px-6">
-      <div className="text-5xl mb-4">✨</div>
-      <h2 className="text-xl text-champagne font-bold">Booking Successful!</h2>
-      <p className="text-sm text-white/50 mt-2">Advance of {formatINR(advance)} recorded. See you on {form.selectedDate}!</p>
+    <div className="text-center py-12 px-6 animate-fadeIn">
+      <div className="text-6xl mb-6">🎉</div>
+      <h2 className="text-2xl text-champagne font-bold mb-3">Confirmed!</h2>
+      <p className="text-sm text-white/70">Your booking is secure. <br/> Transaction ID: {form.utr}</p>
+      <div className="mt-8 p-4 bg-white/5 rounded-xl border border-white/10 text-[9px] text-white/30 uppercase tracking-[0.2em]">
+        Pay balance {formatINR(pending)} on {form.selectedDate}
+      </div>
     </div>
   );
 
   return (
     <div className="space-y-5">
       {step === 1 && (
-        <div className="space-y-2">
-          {services.map(s => <button key={s.id} onClick={()=>{setForm({...form, selectedService:s}); setStep(2)}} className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-between"><span>{s.name}</span><span className="text-champagne">{formatINR(s.price)}</span></button>)}
+        <div className="space-y-3">
+          <label className="text-[10px] tracking-widest text-champagne uppercase ml-2">Choose Service</label>
+          {services.map(s => (
+            <button key={s.id} onClick={()=>{setForm({...form, selectedService:s}); setStep(2)}} 
+                    className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl flex justify-between hover:border-champagne/40">
+              <span className="font-medium">{s.name}</span>
+              <span className="text-champagne font-bold">{formatINR(s.price)}</span>
+            </button>
+          ))}
         </div>
       )}
+
       {step === 2 && (
         <div className="space-y-4">
+          <label className="text-[10px] tracking-widest text-champagne uppercase ml-2">Select Date</label>
           <BookingCalendar busyDates={busyDates} selectedDate={form.selectedDate} onSelect={d => setForm({...form, selectedDate:d})} />
-          <button disabled={!form.selectedDate} onClick={()=>setStep(3)} className="w-full py-4 bg-champagne text-charcoal font-bold rounded-2xl">Next Step</button>
+          <button disabled={!form.selectedDate} onClick={()=>setStep(3)} 
+                  className="w-full py-4 bg-champagne text-charcoal font-bold rounded-2xl disabled:opacity-30">Next</button>
         </div>
       )}
+
       {step === 3 && (
         <div className="space-y-4">
-          <input placeholder="Your Full Name" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl" onChange={e=>setForm({...form, clientName:e.target.value})} />
-          <input placeholder="WhatsApp Number" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl" onChange={e=>setForm({...form, clientPhone:e.target.value})} />
-          <button onClick={()=>setStep(4)} className="w-full py-4 bg-champagne text-charcoal font-bold rounded-2xl">Pay Advance</button>
+          <label className="text-[10px] tracking-widest text-champagne uppercase ml-2">Details</label>
+          <input placeholder="Your Name" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-champagne/40" 
+                 onChange={e=>setForm({...form, clientName:e.target.value})} />
+          <input placeholder="WhatsApp Number" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-champagne/40" 
+                 onChange={e=>setForm({...form, clientPhone:e.target.value})} />
+          <button disabled={!form.clientName || !form.clientPhone} onClick={()=>setStep(4)} 
+                  className="w-full py-4 bg-champagne text-charcoal font-bold rounded-2xl disabled:opacity-30">Payment</button>
         </div>
       )}
+
       {step === 4 && (
         <div className="space-y-6">
-          <div className="bg-white/5 p-5 rounded-2xl border border-champagne/30 text-center">
-            <p className="text-[10px] uppercase text-white/40 tracking-widest">Total: {formatINR(totalPrice)}</p>
-            <p className="text-lg font-bold text-green-400 mt-1">Pay Advance: {formatINR(advance)}</p>
-            <div className="bg-white p-3 rounded-xl inline-block mt-4 shadow-2xl">
-              <img src={transformDriveLink(profile.upi_qr_url)} className="w-40 h-auto" />
+          <div className="bg-white/5 p-5 rounded-2xl border border-champagne/30 text-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 bg-champagne text-charcoal px-3 py-1 text-[8px] font-bold uppercase">30% Advance</div>
+            <p className="text-[10px] uppercase text-white/40 tracking-widest mt-2">Total Amount: {formatINR(totalPrice)}</p>
+            <p className="text-xl font-bold text-green-400 mt-1">Pay Now: {formatINR(advance)}</p>
+            
+            <a href={upiLink} className="inline-flex items-center gap-2 bg-[#5f259f] text-white px-6 py-3 rounded-xl font-bold mt-6 shadow-lg active:scale-95 text-sm">
+              🟣 Pay via App
+            </a>
+
+            <div className="bg-white p-3 rounded-xl inline-block mt-6 shadow-2xl block mx-auto">
+              <img src={transformDriveLink(profile.upi_qr_url)} className="w-40 h-auto" alt="QR" />
             </div>
-            <p className="text-[10px] text-white/30 mt-4 italic uppercase tracking-widest">Balance {formatINR(pending)} pay on event date morning</p>
+            <p className="text-[9px] text-white/30 mt-4 uppercase tracking-widest">UPI ID: {upiId}</p>
           </div>
-          <input placeholder="Enter Transaction ID / UTR" className="w-full p-4 bg-white/5 border border-champagne/30 rounded-2xl" onChange={e=>setForm({...form, utr:e.target.value})} />
-          <div className="text-[10px] text-white/40 bg-red-500/5 p-4 rounded-xl border border-red-500/10">
-            <b>T&C:</b> Advance is non-refundable. Balance must be paid on event morning or booking will be cancelled.
+
+          <div className="space-y-2 text-center">
+            <label className="text-[10px] text-champagne uppercase tracking-[0.2em]">Enter Transaction ID / UTR *</label>
+            <input placeholder="Paste 12-digit UTR Number" 
+                   className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-center outline-none focus:border-champagne" 
+                   onChange={e=>setForm({...form, utr: e.target.value})} />
           </div>
-          <button onClick={handleSubmit} disabled={!form.utr || loading} className="w-full py-4 bg-champagne text-charcoal font-bold rounded-2xl">Confirm Booking</button>
+
+          <div className="text-[9px] text-white/30 bg-red-500/5 p-4 rounded-xl border border-red-500/10 uppercase leading-relaxed">
+            <b>Note:</b> Advance is non-refundable. Pay 70% balance on event morning.
+          </div>
+
+          <button onClick={handleSubmit} 
+                  disabled={!form.utr || form.utr.length < 10 || loading} 
+                  className={`w-full py-4 rounded-2xl font-bold transition-all ${form.utr && form.utr.length >= 10 ? 'bg-champagne text-charcoal shadow-lg' : 'bg-white/10 text-white/20'}`}>
+            {loading ? 'Verifying...' : '✅ Confirm Booking'}
+          </button>
         </div>
       )}
     </div>
@@ -176,22 +228,21 @@ export default function PortfolioPage() {
     })();
   }, [username]);
 
-  if (loading) return <div className="min-h-screen bg-charcoal flex items-center justify-center text-champagne animate-pulse">Loading…</div>;
+  if (loading) return <div className="min-h-screen bg-charcoal flex items-center justify-center text-champagne animate-pulse uppercase tracking-[0.3em] text-xs">ArtistHub Loading...</div>;
+  if (!profile) return <div className="min-h-screen bg-charcoal flex items-center justify-center text-white/30 tracking-widest uppercase">Profile Not Found</div>;
 
   return (
-    <main className="min-h-screen bg-charcoal text-white font-body">
+    <main className="min-h-screen bg-charcoal text-white font-body pb-10">
       <Head>
         <title>{profile.full_name} · ArtistHub</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
       </Head>
 
-      {/* Cover */}
       <div className="relative h-48 w-full overflow-hidden">
         {profile.cover_url ? <img src={transformDriveLink(profile.cover_url)} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-charcoal" />}
         <div className="absolute inset-0 bg-gradient-to-t from-charcoal via-transparent to-transparent" />
       </div>
 
-      {/* Profile Card Fix (Less Gap) */}
       <div className="relative px-5 -mt-20 pb-4">
         <div className="flex items-end gap-4">
           {profile.avatar_url ? <img src={transformDriveLink(profile.avatar_url)} className="w-24 h-24 rounded-2xl object-cover border-2 border-champagne/30 shadow-2xl flex-shrink-0" /> : <div className="w-24 h-24 rounded-2xl bg-white/10 flex items-center justify-center text-2xl">✨</div>}
@@ -200,41 +251,42 @@ export default function PortfolioPage() {
             <p className="text-champagne/80 text-xs italic tracking-wide">{profile.tagline}</p>
           </div>
         </div>
-        <button onClick={() => generateArtistPDF(profile, services)} className="mt-5 w-full py-2.5 rounded-xl border border-champagne/20 text-champagne text-[10px] uppercase tracking-[0.3em]">Download Portfolio PDF</button>
+        <button onClick={() => generateArtistPDF(profile, services)} className="mt-5 w-full py-2.5 rounded-xl border border-white/10 text-white/50 text-[10px] uppercase tracking-[0.3em] hover:text-champagne hover:border-champagne/30 transition-all">Download Portfolio PDF</button>
       </div>
 
-      {/* Tab Switcher */}
       <div className="flex mx-5 mt-4 bg-white/5 rounded-2xl p-1 gap-1 border border-white/5">
         {[['portfolio','Portfolio'],['book','Book Now']].map(([id, label]) => (
-          <button key={id} onClick={() => setTab(id)} className={`flex-1 py-3 rounded-xl text-[10px] font-bold tracking-[0.2em] uppercase transition-all ${tab === id ? 'bg-champagne text-charcoal' : 'text-white/40'}`}>{label}</button>
+          <button key={id} onClick={() => setTab(id)} className={`flex-1 py-3 rounded-xl text-[10px] font-bold tracking-[0.2em] uppercase transition-all ${tab === id ? 'bg-champagne text-charcoal shadow-lg' : 'text-white/40'}`}>{label}</button>
         ))}
       </div>
 
-      <div className="pb-20">
+      <div className="mt-2 min-h-[400px]">
         {tab === 'portfolio' ? (
           <>
             <PortfolioGrid images={profile.portfolio_images} />
             {profile.upi_qr_url && (
               <section className="px-5 py-8 text-center bg-white/5 rounded-3xl mx-5 mt-4 border border-white/5">
-                <h2 className="font-display text-[13px] tracking-widest text-champagne mb-5 uppercase">Pay via UPI</h2>
+                <h2 className="font-display text-[10px] tracking-widest text-champagne mb-5 uppercase">Quick Scan Pay</h2>
                 <div className="bg-white p-4 rounded-2xl inline-block shadow-2xl">
                   <img src={transformDriveLink(profile.upi_qr_url)} className="w-full max-w-[180px] h-auto object-contain mx-auto" />
                 </div>
-                <p className="text-[14px] text-white/30 mt-4 uppercase tracking-widest italic">Scan to Pay 30% Advance</p>
+                {profile.upi_id && <p className="text-[11px] text-white/50 mt-4 font-mono">{profile.upi_id}</p>}
+                <p className="text-[10px] text-white/20 mt-2 uppercase tracking-widest italic font-medium">30% Advance required to block date</p>
               </section>
             )}
           </>
         ) : (
-          <section className="px-5 py-8">
+          <section className="px-5 py-6 animate-fadeIn">
             <BookingForm profile={profile} services={services} busyDates={busyDates} />
           </section>
         )}
       </div>
       
-      <footer className="text-center py-6 border-t border-white/5 text-[10px] text-white/20 tracking-widest uppercase">
-        ArtistHub · Digital Portfolio &copy; 2026<br/>
+      <footer className="text-center py-10 border-t border-white/5 text-[9px] text-white/10 tracking-[0.3em] uppercase leading-relaxed">
+        ArtistHub Digital Portfolio &copy; 2026 <br/>
         Made by 🤞 Lucky
       </footer>
     </main>
   );
- }
+  }
+          
