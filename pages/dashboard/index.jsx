@@ -53,6 +53,11 @@ function ProfileEditor({ profile, userId, onSaved }) {
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const handleChange = (e) => {
+  const { name, value } = e.target;
+  setForm(prev => ({ ...prev, [name]: value }));
+};
+
   const handleSave = async () => {
     if (!form.username.trim()) { setError('Username is required.'); return; }
     setSaving(true);
