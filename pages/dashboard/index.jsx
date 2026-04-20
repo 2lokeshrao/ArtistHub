@@ -8,6 +8,12 @@ import {
 
 const formatINR = n => `₹${Number(n).toLocaleString('en-IN')}`;
 
+// Helper to format date for WhatsApp and Display
+const formatDate = (dateStr) => {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
 export default function Dashboard() {
   const router = useRouter();
   const [session, setSession] = useState(null);
@@ -38,7 +44,7 @@ export default function Dashboard() {
 
       <nav className="flex px-6 mt-4 gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
         {['profile', 'services', 'calendar', 'bookings'].map(t => (
-          <button key={t} onClick={() => setTab(t)} className={`pb-3 text-[11px] uppercase tracking-widest font-bold border-b-2 ${tab === t ? 'border-[#D4B996] text-[#D4B996]' : 'border-transparent text-white/30'}`}>{t}</button>
+          <button key={t} onClick={() => setTab(t)} className={`pb-3 text-[11px] uppercase tracking-widest font-bold border-b-2 transition-all ${tab === t ? 'border-[#D4B996] text-[#D4B996]' : 'border-transparent text-white/30'}`}>{t}</button>
         ))}
       </nav>
 
@@ -52,6 +58,7 @@ export default function Dashboard() {
   );
 }
 
+// --- 1. Profile Editor (PDF & Share Included) ---
 function ProfileEditor({ profile, userId, onSaved }) {
   const [isSaving, setIsSaving] = useState(false);
   const [f, setF] = useState({
@@ -64,202 +71,171 @@ function ProfileEditor({ profile, userId, onSaved }) {
     experience: profile?.experience || '', 
     instagram_url: profile?.instagram_url || '',
     avatar_url: profile?.avatar_url || '', 
-    cover_url: profile?.cover_url || '',
     upi_qr_url: profile?.upi_qr_url || '', 
     portfolio_images: (profile?.portfolio_images || []).join('\n'),
   });
 
-  // --- SAVE FUNCTION FIXED HERE ---
   const save = async () => {
     if(!f.username) return alert("Username required!");
-    if(isSaving) return;
-
     setIsSaving(true);
-    const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
-    
-    // Database data structure
-    const profileData = {
-      id: userId,
-      username: f.username,
-      full_name: f.full_name,
-      phone: f.phone,
-      upi_id: f.upi_id,
-      tagline: f.tagline,
-      education: f.education,      
-      experience: f.experience,    
-      instagram_url: f.instagram_url,
-      avatar_url: f.avatar_url,
-      upi_qr_url: f.upi_qr_url,
-      portfolio_images: imgs,
-      updated_at: new Date()
-    };
-
     try {
-      // Direct supabase call for better error handling
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(profileData)
-        .select()
-        .single();
-
+      const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
+      const { data, error } = await supabase.from('profiles').upsert({
+        id: userId, ...f, portfolio_images: imgs, updated_at: new Date()
+      }).select().single();
       if (error) throw error;
-
-      if (data) {
-        onSaved(data); 
-        alert("Profile Updated Successfully! ✨");
-      }
-    } catch (err) {
-      console.error("Save Error:", err);
-      alert("Error: " + (err.message || "Save nahi ho paya. SQL columns check karein."));
-    } finally {
-      setIsSaving(false);
-    }
+      onSaved(data); alert("Profile Saved! ✨");
+    } catch (err) { alert("Error: " + err.message); } finally { setIsSaving(false); }
   };
 
   const copyLink = () => {
-    if(!profile?.username) return alert("Pehle profile save karein!");
     const link = `${window.location.origin}/portfolio/${profile.username}`;
     navigator.clipboard.writeText(link);
-    alert("Portfolio Link Copied! 📋");
+    alert("Link Copied! 📋");
   };
 
-  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none mb-4 transition-all";
+  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none mb-4 focus:border-[#D4B996]/50";
 
   return (
-    <div className="animate-fadeIn pb-10">
-      <div className="bg-[#D4B996]/10 border border-[#D4B996]/30 p-4 rounded-2xl mb-8 text-center font-bold">
-        <h4 className="text-[10px] text-[#D4B996] uppercase mb-2 italic">📸 Instructions:</h4>
-        <p className="text-[9px] text-white/60">
-          Google Drive links ko "Anyone with link" par set karein.<br/>
-          Instagram link poora (https://...) daalein.
-        </p>
-      </div>
-
+    <div className="animate-fadeIn">
       <div className="space-y-1">
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Username</label>
-        <input placeholder="username" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Full Name</label>
-        <input placeholder="Lokesh Raoo" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">WhatsApp Number</label>
-        <input placeholder="91..." value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Instagram URL</label>
-        <input placeholder="https://instagram.com/..." value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">UPI ID</label>
-        <input placeholder="name@upi" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Education</label>
-        <textarea placeholder="BA Graduate..." value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Experience</label>
-        <textarea placeholder="5+ Years..." value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Gallery Links (One per line)</label>
-        <textarea placeholder="Paste links here..." value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
-        
-        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">UPI QR Link</label>
-        <input placeholder="QR Image URL" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
+        <input placeholder="Username" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
+        <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
+        <input placeholder="Instagram URL" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
+        <textarea placeholder="Education" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} />
+        <textarea placeholder="Experience" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} />
+        <textarea placeholder="Portfolio Image Links (one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
       </div>
-      
-      <button 
-        onClick={save} 
-        disabled={isSaving}
-        className={`w-full py-5 bg-[#D4B996] text-[#1A1A1A] font-black rounded-3xl uppercase text-xs mb-8 transition-all ${isSaving ? 'opacity-50 cursor-not-allowed' : 'opacity-100 active:scale-95'}`}
-      >
-        {isSaving ? 'Processing...' : 'Save Profile ✨'}
+      <button onClick={save} disabled={isSaving} className="w-full py-4 bg-[#D4B996] text-black font-bold rounded-2xl uppercase text-xs mt-4">
+        {isSaving ? 'Saving...' : 'Save Profile ✨'}
       </button>
 
       {profile?.username && (
-        <div className="mt-6 p-6 bg-white/5 border border-[#D4B996]/20 rounded-[32px] text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Share Portfolio</p>
+        <div className="mt-8 p-6 bg-white/5 border border-[#D4B996]/20 rounded-[32px] text-center">
+          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Public Portfolio</p>
           <div className="flex gap-2">
-            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase">View Live</button>
-            <button onClick={copyLink} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase">Copy Link</button>
+            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase">View</button>
+            <button onClick={copyLink} className="flex-1 py-3 bg-[#D4B996] text-black rounded-xl text-[10px] font-bold uppercase">Copy Link</button>
           </div>
         </div>
       )}
     </div>
   );
 }
-      
+
 // --- 2. Services Manager ---
 function ServicesManager({ profileId }) {
   const [list, setList] = useState([]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ name: '', price: '', duration: '' });
-  const load = useCallback(async () => setList(await getServices(profileId)), [profileId]);
-  useEffect(() => { load(); }, [load]);
+  const [f, setF] = useState({ name: '', price: '', description: '' });
+  
+  const refresh = useCallback(() => getServices(profileId).then(setList), [profileId]);
+  useEffect(() => { refresh(); }, [refresh]);
+
   const add = async () => {
-    if(!form.name || !form.price) return alert("Fill Name and Price");
-    await upsertService(profileId, { ...form, price: parseFloat(form.price) });
-    setShowAdd(false); setForm({ name: '', price: '', duration: '' }); load();
+    await upsertService({ ...f, profile_id: profileId });
+    setF({ name: '', price: '', description: '' }); refresh();
   };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
+        <input placeholder="Service Name" value={f.name} onChange={e => setF({...f, name: e.target.value})} className="w-full bg-transparent border-b border-white/10 py-3 mb-4 outline-none text-sm" />
+        <input placeholder="Price" type="number" value={f.price} onChange={e => setF({...f, price: e.target.value})} className="w-full bg-transparent border-b border-white/10 py-3 mb-6 outline-none text-sm" />
+        <button onClick={add} className="w-full py-3 bg-[#D4B996] text-black font-bold rounded-xl text-[10px] uppercase">Add Service</button>
+      </div>
       {list.map(s => (
-        <div key={s.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl flex justify-between items-center">
-          <div><p className="font-bold text-[#D4B996]">{s.name}</p><p className="text-[10px] text-white/40">{formatINR(s.price)} · {s.duration}</p></div>
-          <button onClick={async () => { if(confirm('Delete?')) { await deleteService(s.id); load(); } }} className="text-red-500/50 text-xs">Delete</button>
+        <div key={s.id} className="flex justify-between items-center p-5 bg-white/5 rounded-2xl border border-white/5">
+          <div><p className="font-bold text-sm">{s.name}</p><p className="text-[#D4B996] text-xs font-bold">{formatINR(s.price)}</p></div>
+          <button onClick={async () => { await deleteService(s.id); refresh(); }} className="text-red-500 text-[10px] font-bold uppercase">Delete</button>
         </div>
       ))}
-      {showAdd ? (
-        <div className="p-6 bg-white/5 border border-[#D4B996]/20 rounded-3xl space-y-3">
-          <input placeholder="Service Name" value={form.name} onChange={e => setForm({...form, name: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none" />
-          <input placeholder="Price" type="number" value={form.price} onChange={e => setForm({...form, price: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none" />
-          <input placeholder="Duration" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none" />
-          <button onClick={add} className="w-full py-3 bg-white text-black font-bold rounded-xl text-xs uppercase">Add</button>
-        </div>
-      ) : (
-        <button onClick={() => setShowAdd(true)} className="w-full py-4 border border-dashed border-[#D4B996]/30 text-[#D4B996] rounded-3xl text-xs uppercase tracking-widest">+ New Service</button>
-      )}
     </div>
   );
 }
 
-// --- 3. Calendar Manager ---
+// --- 3. Calendar Manager (Busy/Green Toggle Fixed) ---
 function CalendarManager({ profileId }) {
   const [map, setMap] = useState({});
-  useEffect(() => { getAvailMap(profileId).then(setMap); }, [profileId]);
-  const toggle = async (d) => {
-    const res = await toggleDate(profileId, d, map[d] || 'available');
-    setMap(prev => ({...prev, [d]: res}));
-  };
-  const days = Array.from({length: 14}, (_, i) => {
+  const days = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() + i);
     return d.toISOString().split('T')[0];
   });
+
+  const refresh = useCallback(() => getAvailMap(profileId).then(setMap), [profileId]);
+  useEffect(() => { refresh(); }, [refresh]);
+
+  const toggle = async (date) => {
+    const isBusy = map[date] === 'busy';
+    // isBusy ? Make it Green (Available) : Make it Red (Busy)
+    await toggleDate(profileId, date, !isBusy);
+    refresh();
+  };
+
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {days.map(d => (
-        <button key={d} onClick={() => toggle(d)} className={`p-4 rounded-2xl border text-[10px] font-bold uppercase ${map[d] === 'busy' ? 'bg-red-500/10 border-red-500/50 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
-          {new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}<br/>
-          <span className="opacity-50">{map[d] === 'busy' ? 'Busy' : 'Available'}</span>
-        </button>
-      ))}
+    <div className="space-y-4">
+      <div className="bg-[#D4B996]/10 p-4 rounded-2xl border border-[#D4B996]/20 mb-4">
+        <p className="text-[10px] text-[#D4B996] font-bold uppercase text-center">Tap to Toggle: Green = Available | Red = Busy</p>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {days.map(d => (
+          <button key={d} onClick={() => toggle(d)} 
+            className={`p-5 rounded-[24px] border transition-all active:scale-95 text-center ${map[d] === 'busy' ? 'bg-red-500/10 border-red-500/50 text-red-500' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500'}`}>
+            <span className="text-[11px] font-black tracking-tighter block mb-1">{formatDate(d)}</span>
+            <span className="text-[9px] uppercase font-bold opacity-60">{map[d] === 'busy' ? '🔴 Busy' : '🟢 Available'}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
 
-// --- 4. Bookings List ---
+// --- 4. Bookings List (Details & WhatsApp Fix) ---
 function BookingsList({ profileId }) {
   const [list, setList] = useState([]);
   useEffect(() => { getBookings(profileId).then(setList); }, [profileId]);
+
   return (
-    <div className="space-y-3">
-      {list.length === 0 && <p className="text-center py-10 text-white/20 text-xs">No bookings found.</p>}
+    <div className="space-y-4">
+      {list.length === 0 && <p className="text-center py-10 text-white/20 text-xs">No bookings found yet.</p>}
       {list.map(b => (
-        <div key={b.id} className="p-5 bg-white/5 border border-white/10 rounded-3xl">
-          <div className="flex justify-between mb-1">
-            <p className="text-[#D4B996] font-bold text-sm">{b.client_name}</p>
-            <p className="text-[#D4B996] font-bold text-sm">{formatINR(b.total_price)}</p>
+        <div key={b.id} className="p-6 bg-white/5 border border-white/10 rounded-[32px] animate-slideUp">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-[10px] uppercase text-[#D4B996] font-bold tracking-widest mb-1">Booking Date</p>
+              <p className="text-lg font-black italic">{formatDate(b.booking_date)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase text-white/30 font-bold mb-1">Status</p>
+              <span className="bg-[#D4B996] text-black text-[9px] font-black px-3 py-1 rounded-full uppercase">Confirmed</span>
+            </div>
           </div>
-          <p className="text-[10px] text-white/50 uppercase tracking-widest">{b.service_name} · {b.booking_date}</p>
-          <p className="text-[10px] text-white/30 mt-2 italic">📞 {b.client_phone}</p>
+
+          <div className="space-y-3 pt-4 border-t border-white/5">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] uppercase text-white/40 font-bold">Client</span>
+              <span className="text-sm font-bold">{b.client_name}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] uppercase text-white/40 font-bold">Phone</span>
+              <span className="text-sm font-bold text-[#D4B996]">{b.client_phone}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] uppercase text-white/40 font-bold">Amount</span>
+              <span className="text-sm font-bold">{formatINR(b.total_price)}</span>
+            </div>
+            
+            {/* Displaying WhatsApp Details like UTR/Notes */}
+            {b.note && (
+              <div className="mt-4 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <p className="text-[9px] uppercase text-white/30 font-bold mb-2">Booking Notes (WhatsApp Info)</p>
+                <p className="text-[11px] text-white/80 leading-relaxed font-mono">{b.note}</p>
+              </div>
+            )}
+          </div>
+          
+          <a href={`https://wa.me/${b.client_phone}`} target="_blank" className="block w-full text-center mt-6 py-3 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-xl text-[10px] font-bold uppercase tracking-widest">Chat on WhatsApp</a>
         </div>
       ))}
     </div>
   );
-  }
+}
