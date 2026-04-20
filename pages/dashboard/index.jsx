@@ -53,6 +53,7 @@ export default function Dashboard() {
 }
 
 function ProfileEditor({ profile, userId, onSaved }) {
+  const [isSaving, setIsSaving] = useState(false); // Loading state add ki
   const [f, setF] = useState({
     username: profile?.username || '', 
     full_name: profile?.full_name || '', 
@@ -70,9 +71,27 @@ function ProfileEditor({ profile, userId, onSaved }) {
 
   const save = async () => {
     if(!f.username) return alert("Username required!");
+    if(isSaving) return;
+
+    setIsSaving(true);
     const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
-    const res = await upsertProfile(userId, { ...f, portfolio_images: imgs });
-    onSaved(res); alert("Profile Updated! ✨");
+    
+    try {
+      // Database upsert logic with error check
+      const res = await upsertProfile(userId, { ...f, portfolio_images: imgs });
+      
+      if (res) {
+        onSaved(res); 
+        alert("Profile Updated Successfully! ✨");
+      } else {
+        throw new Error("No response from database");
+      }
+    } catch (err) {
+      console.error("Save Error:", err);
+      alert("Error: Save nahi ho paya. Console check karein ya fields check karein.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const copyLink = () => {
@@ -81,40 +100,67 @@ function ProfileEditor({ profile, userId, onSaved }) {
     alert("Portfolio Link Copied! 📋");
   };
 
-  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none mb-4";
+  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none mb-4 transition-all";
 
   return (
     <div className="animate-fadeIn pb-10">
       <div className="bg-[#D4B996]/10 border border-[#D4B996]/30 p-4 rounded-2xl mb-8 text-center font-bold">
         <h4 className="text-[10px] text-[#D4B996] uppercase mb-2 italic">📸 Instructions:</h4>
-        <p className="text-[9px] text-white/60">Google Drive links ko "Anyone with link" par set karein.</p>
+        <p className="text-[9px] text-white/60 leading-relaxed">
+          Google Drive links ko "Anyone with link" par set karein.<br/>
+          Sabhi fields bharne ke baad "Save Profile" par click karein.
+        </p>
       </div>
 
-      <input placeholder="Username" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
-      <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
-      <input placeholder="WhatsApp Phone" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
-      <input placeholder="Instagram URL" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
-      <input placeholder="UPI ID" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
-      <textarea placeholder="Education" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
-      <textarea placeholder="Experience" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
-      <textarea placeholder="Portfolio Images (one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
-      <input placeholder="UPI QR URL" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
+      <div className="space-y-1">
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Username (No spaces)</label>
+        <input placeholder="lucky_artist" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Display Name</label>
+        <input placeholder="Lokesh Raoo" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">WhatsApp (with country code)</label>
+        <input placeholder="917877XXXXXX" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Instagram URL</label>
+        <input placeholder="https://instagram.com/yourid" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Payment UPI ID</label>
+        <input placeholder="lucky@okicici" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Education</label>
+        <textarea placeholder="e.g. BA Graduate" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Experience</label>
+        <textarea placeholder="e.g. 5+ Years in Finance & Makeup" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">Portfolio Gallery Links (One per line)</label>
+        <textarea placeholder="https://drive...&#10;https://i.ibb..." value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
+        
+        <label className="text-[10px] uppercase text-white/30 ml-4 font-bold">UPI QR Image Link</label>
+        <input placeholder="Link to your QR photo" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
+      </div>
       
-      <button onClick={save} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl uppercase text-xs mb-8">Save Profile</button>
+      <button 
+        onClick={save} 
+        disabled={isSaving}
+        className={`w-full py-5 bg-[#D4B996] text-[#1A1A1A] font-black rounded-3xl uppercase text-xs mb-8 shadow-2xl transition-all active:scale-95 ${isSaving ? 'opacity-50 cursor-not-allowed' : 'opacity-100'}`}
+      >
+        {isSaving ? 'Saving Data...' : 'Save Profile ✨'}
+      </button>
 
       {profile?.username && (
-        <div className="mt-6 p-6 bg-white/5 border border-[#D4B996]/20 rounded-3xl text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold text-center">Your Live Portfolio</p>
-          <div className="flex gap-2 text-center">
-            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase">View Live</button>
-            <button onClick={copyLink} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase">Copy Link</button>
+        <div className="mt-6 p-6 bg-white/5 border border-[#D4B996]/20 rounded-[32px] text-center">
+          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Manage Your Portfolio</p>
+          <div className="flex gap-2">
+            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase hover:bg-white/10">View Live</button>
+            <button onClick={copyLink} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase hover:bg-white/10">Copy Link</button>
           </div>
         </div>
       )}
     </div>
   );
 }
-// ... ServicesManager, CalendarManager, BookingsList same as original ...
 
 // --- 2. Services Manager ---
 function ServicesManager({ profileId }) {
