@@ -8,7 +8,6 @@ import {
 
 const formatINR = n => `₹${Number(n).toLocaleString('en-IN')}`;
 
-// --- Main Dashboard Component ---
 export default function Dashboard() {
   const router = useRouter();
   const [session, setSession] = useState(null);
@@ -27,31 +26,19 @@ export default function Dashboard() {
     if (session?.user?.id) getOwnProfile(session.user.id).then(setProfile);
   }, [session]);
 
-  if (loading) return <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center text-[#D4B996]">ArtistHub Loading...</div>;
+  if (loading) return <div className="min-h-screen bg-[#1A1A1A] flex items-center justify-center text-[#D4B996]">Loading Dashboard...</div>;
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-white font-sans pb-24">
-      <Head><title>ArtistHub | Dashboard</title></Head>
-      
+      <Head><title>Dashboard | ArtistHub</title></Head>
       <header className="p-6 border-b border-white/5 flex justify-between items-center sticky top-0 bg-[#1A1A1A]/80 backdrop-blur-md z-50">
-        <div>
-          <h1 className="text-xl font-bold tracking-tighter text-[#D4B996] italic">ArtistHub</h1>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-white/30">Artist Studio</p>
-        </div>
+        <div><h1 className="text-xl font-bold tracking-tighter text-[#D4B996] italic">ArtistHub</h1></div>
         <button onClick={() => supabase.auth.signOut()} className="text-[10px] uppercase font-bold text-white/40">Sign Out</button>
       </header>
 
       <nav className="flex px-6 mt-4 gap-8 border-b border-white/5 overflow-x-auto no-scrollbar">
         {['profile', 'services', 'calendar', 'bookings'].map(t => (
-          <button 
-            key={t} 
-            onClick={() => setTab(t)} 
-            className={`pb-3 text-[11px] uppercase tracking-widest font-bold transition-all border-b-2 whitespace-nowrap ${
-              tab === t ? 'border-[#D4B996] text-[#D4B996]' : 'border-transparent text-white/30'
-            }`}
-          >
-            {t}
-          </button>
+          <button key={t} onClick={() => setTab(t)} className={`pb-3 text-[11px] uppercase tracking-widest font-bold border-b-2 ${tab === t ? 'border-[#D4B996] text-[#D4B996]' : 'border-transparent text-white/30'}`}>{t}</button>
         ))}
       </nav>
 
@@ -60,80 +47,64 @@ export default function Dashboard() {
         {tab === 'services' && profile && <ServicesManager profileId={profile.id} />}
         {tab === 'calendar' && profile && <CalendarManager profileId={profile.id} />}
         {tab === 'bookings' && profile && <BookingsList profileId={profile.id} />}
-        
-        {tab !== 'profile' && !profile && (
-          <div className="text-center py-20 border border-dashed border-white/10 rounded-3xl">
-            <p className="text-white/40 text-sm">Pehle Profile tab mein apni jaankari save karein.</p>
-          </div>
-        )}
       </main>
     </div>
   );
 }
 
-// --- 1. Profile Editor ---
 function ProfileEditor({ profile, userId, onSaved }) {
   const [f, setF] = useState({
-    username: profile?.username || '', 
-    full_name: profile?.full_name || '',
-    tagline: profile?.tagline || '', 
-    phone: profile?.phone || '',
-    upi_id: profile?.upi_id || '',
-    avatar_url: profile?.avatar_url || '', 
-    upi_qr_url: profile?.upi_qr_url || '',
-    portfolio_images: (profile?.portfolio_images || []).join('\n'),
+    username: profile?.username || '', full_name: profile?.full_name || '', phone: profile?.phone || '',
+    upi_id: profile?.upi_id || '', tagline: profile?.tagline || '', education: profile?.education || '',
+    experience: profile?.experience || '', instagram_url: profile?.instagram_url || '',
+    avatar_url: profile?.avatar_url || '', cover_url: profile?.cover_url || '',
+    upi_qr_url: profile?.upi_qr_url || '', portfolio_images: (profile?.portfolio_images || []).join('\n'),
   });
 
   const save = async () => {
     if(!f.username) return alert("Username required!");
     const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
-    try {
-      const res = await upsertProfile(userId, { ...f, portfolio_images: imgs });
-      onSaved(res); 
-      alert("Profile Updated! ✨");
-    } catch (err) {
-      alert("Error! Supabase column check karein.");
-    }
+    const res = await upsertProfile(userId, { ...f, portfolio_images: imgs });
+    onSaved(res); alert("Profile Updated! ✨");
   };
 
-  const copyLink = () => {
-    const link = `${window.location.origin}/portfolio/${profile.username}`;
-    navigator.clipboard.writeText(link);
-    alert("Link copied! 📋");
-  };
-
-  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none transition-all mb-4";
+  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none mb-4";
 
   return (
-    <div className="animate-fadeIn">
-      <input placeholder="Username (Unique)" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
-      <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
-      <input placeholder="Phone (e.g. 919876543210)" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
-      
-      <div className="p-4 bg-[#D4B996]/5 border border-[#D4B996]/20 rounded-2xl mb-4">
-        <label className="text-[9px] uppercase tracking-widest text-[#D4B996] font-bold block mb-2">UPI ID (For Payments)</label>
-        <input placeholder="example@okicici" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className="w-full bg-black/20 p-4 rounded-xl text-sm outline-none border border-white/5" />
+    <div className="animate-fadeIn pb-10">
+      {/* Instructions Box */}
+      <div className="bg-[#D4B996]/10 border border-[#D4B996]/30 p-4 rounded-2xl mb-8">
+        <h4 className="text-[10px] font-bold text-[#D4B996] uppercase tracking-widest mb-2 italic">📸 Photo Upload Instructions:</h4>
+        <ul className="text-[9px] text-white/60 space-y-1 list-disc ml-4 leading-relaxed">
+          <li>Google Drive par photo upload karein.</li>
+          <li>Photo par right-click karke <b>"Share"</b> par click karein.</li>
+          <li>General Access ko <b>"Anyone with the link"</b> par set karein.</li>
+          <li>Link copy karein aur niche box mein paste kar dein.</li>
+        </ul>
       </div>
 
-      <input placeholder="Tagline" value={f.tagline} onChange={e => setF({...f, tagline: e.target.value})} className={inputStyle} />
-      <textarea placeholder="Portfolio Images (URLs, one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} rows={4} className={inputStyle} />
-      <input placeholder="Avatar URL" value={f.avatar_url} onChange={e => setF({...f, avatar_url: e.target.value})} className={inputStyle} />
-      <input placeholder="UPI QR URL" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
+      <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Personal & Payment</h3>
+      <input placeholder="Username (Unique)" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
+      <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
+      <input placeholder="WhatsApp Phone (e.g. 91...)" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
+      <input placeholder="Instagram Link (URL)" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
+      <input placeholder="UPI ID (for payments)" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
       
-      <button onClick={save} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl uppercase tracking-widest text-xs">Save Profile</button>
+      <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">About & Experience</h3>
+      <textarea placeholder="Education (e.g. BA Graduate)" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
+      <textarea placeholder="Experience (e.g. 5 Years in Makeup)" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
 
-      {profile?.username && (
-        <div className="mt-10 p-6 bg-white/5 border border-[#D4B996]/20 rounded-3xl text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Your Live Portfolio</p>
-          <div className="flex gap-2">
-            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold">View Live</button>
-            <button onClick={copyLink} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold">Copy Link</button>
-          </div>
-        </div>
-      )}
+      <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Portfolio Images (Link per line)</h3>
+      <textarea placeholder="Paste Google Drive Links here..." value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={5} />
+      
+      <input placeholder="UPI QR Link" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
+      <button onClick={save} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl uppercase tracking-widest text-xs shadow-lg">Save Profile</button>
     </div>
   );
 }
+
+// ... ServicesManager, CalendarManager, BookingsList same as before ...
+
 
 // --- 2. Services Manager ---
 function ServicesManager({ profileId }) {
