@@ -54,11 +54,18 @@ export default function Dashboard() {
 
 function ProfileEditor({ profile, userId, onSaved }) {
   const [f, setF] = useState({
-    username: profile?.username || '', full_name: profile?.full_name || '', phone: profile?.phone || '',
-    upi_id: profile?.upi_id || '', tagline: profile?.tagline || '', education: profile?.education || '',
-    experience: profile?.experience || '', instagram_url: profile?.instagram_url || '',
-    avatar_url: profile?.avatar_url || '', cover_url: profile?.cover_url || '',
-    upi_qr_url: profile?.upi_qr_url || '', portfolio_images: (profile?.portfolio_images || []).join('\n'),
+    username: profile?.username || '', 
+    full_name: profile?.full_name || '', 
+    phone: profile?.phone || '',
+    upi_id: profile?.upi_id || '', 
+    tagline: profile?.tagline || '', 
+    education: profile?.education || '',
+    experience: profile?.experience || '', 
+    instagram_url: profile?.instagram_url || '',
+    avatar_url: profile?.avatar_url || '', 
+    cover_url: profile?.cover_url || '',
+    upi_qr_url: profile?.upi_qr_url || '', 
+    portfolio_images: (profile?.portfolio_images || []).join('\n'),
   });
 
   const save = async () => {
@@ -68,43 +75,46 @@ function ProfileEditor({ profile, userId, onSaved }) {
     onSaved(res); alert("Profile Updated! ✨");
   };
 
+  const copyLink = () => {
+    const link = `${window.location.origin}/portfolio/${profile.username}`;
+    navigator.clipboard.writeText(link);
+    alert("Portfolio Link Copied! 📋");
+  };
+
   const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none mb-4";
 
   return (
     <div className="animate-fadeIn pb-10">
-      {/* Instructions Box */}
-      <div className="bg-[#D4B996]/10 border border-[#D4B996]/30 p-4 rounded-2xl mb-8">
-        <h4 className="text-[10px] font-bold text-[#D4B996] uppercase tracking-widest mb-2 italic">📸 Photo Upload Instructions:</h4>
-        <ul className="text-[9px] text-white/60 space-y-1 list-disc ml-4 leading-relaxed">
-          <li>Google Drive par photo upload karein.</li>
-          <li>Photo par right-click karke <b>"Share"</b> par click karein.</li>
-          <li>General Access ko <b>"Anyone with the link"</b> par set karein.</li>
-          <li>Link copy karein aur niche box mein paste kar dein.</li>
-        </ul>
+      <div className="bg-[#D4B996]/10 border border-[#D4B996]/30 p-4 rounded-2xl mb-8 text-center font-bold">
+        <h4 className="text-[10px] text-[#D4B996] uppercase mb-2 italic">📸 Instructions:</h4>
+        <p className="text-[9px] text-white/60">Google Drive links ko "Anyone with link" par set karein.</p>
       </div>
 
-      <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Personal & Payment</h3>
-      <input placeholder="Username (Unique)" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
+      <input placeholder="Username" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
       <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
-      <input placeholder="WhatsApp Phone (e.g. 91...)" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
-      <input placeholder="Instagram Link (URL)" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
-      <input placeholder="UPI ID (for payments)" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
+      <input placeholder="WhatsApp Phone" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
+      <input placeholder="Instagram URL" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
+      <input placeholder="UPI ID" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
+      <textarea placeholder="Education" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
+      <textarea placeholder="Experience" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
+      <textarea placeholder="Portfolio Images (one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
+      <input placeholder="UPI QR URL" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
       
-      <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">About & Experience</h3>
-      <textarea placeholder="Education (e.g. BA Graduate)" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
-      <textarea placeholder="Experience (e.g. 5 Years in Makeup)" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
+      <button onClick={save} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl uppercase text-xs mb-8">Save Profile</button>
 
-      <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Portfolio Images (Link per line)</h3>
-      <textarea placeholder="Paste Google Drive Links here..." value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={5} />
-      
-      <input placeholder="UPI QR Link" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
-      <button onClick={save} className="w-full py-4 bg-[#D4B996] text-[#1A1A1A] font-bold rounded-2xl uppercase tracking-widest text-xs shadow-lg">Save Profile</button>
+      {profile?.username && (
+        <div className="mt-6 p-6 bg-white/5 border border-[#D4B996]/20 rounded-3xl text-center">
+          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold text-center">Your Live Portfolio</p>
+          <div className="flex gap-2 text-center">
+            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase">View Live</button>
+            <button onClick={copyLink} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase">Copy Link</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-// ... ServicesManager, CalendarManager, BookingsList same as before ...
-
+// ... ServicesManager, CalendarManager, BookingsList same as original ...
 
 // --- 2. Services Manager ---
 function ServicesManager({ profileId }) {
