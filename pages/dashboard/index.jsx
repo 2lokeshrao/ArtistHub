@@ -71,12 +71,45 @@ function ProfileEditor({ profile, userId, onSaved }) {
 
   const save = async () => {
     if(!f.username) return alert("Username required!");
-    if(isSaving) return;
-
     setIsSaving(true);
+
     const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
-    
+
+    // Yeh data aapke Supabase Columns se match hona chahiye
+    const profileData = {
+      id: userId,
+      username: f.username,
+      full_name: f.full_name,
+      phone: f.phone,
+      upi_id: f.upi_id,
+      tagline: f.tagline,
+      education: f.education,      
+      experience: f.experience,    
+      instagram_url: f.instagram_url,
+      avatar_url: f.avatar_url,
+      upi_qr_url: f.upi_qr_url,
+      portfolio_images: imgs,
+      updated_at: new Date()
+    };
+
     try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(profileData)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      onSaved(data);
+      alert("Profile Updated Successfully! ✨");
+    } catch (err) {
+      console.error("Database Error:", err.message);
+      alert("Error: " + err.message); 
+    } finally {
+      setIsSaving(false);
+    }
+  };
       // Database upsert logic with error check
       const res = await upsertProfile(userId, { ...f, portfolio_images: imgs });
       
