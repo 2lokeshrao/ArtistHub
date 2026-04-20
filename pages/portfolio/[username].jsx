@@ -25,12 +25,12 @@ function BookingCalendar({ busyDates, selectedDate, onSelect }) {
   return (
     <div className="bg-white/5 rounded-3xl p-4 border border-white/10 mt-4">
       <div className="flex justify-between items-center mb-6">
-        <button onClick={() => setView(v => v.m === 0 ? { y: v.y - 1, m: 11 } : { ...v, m: v.m - 1 })} className="text-[#D4B996]">‹</button>
+        <button onClick={() => setView(v => v.m === 0 ? { y: v.y - 1, m: 11 } : { ...v, m: v.m - 1 })} className="text-[#D4B996] text-xl font-bold">‹</button>
         <span className="text-xs font-bold uppercase">{new Date(view.y, view.m).toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
-        <button onClick={() => setView(v => v.m === 11 ? { y: v.y + 1, m: 0 } : { ...v, m: v.m + 1 })} className="text-[#D4B996]">›</button>
+        <button onClick={() => setView(v => v.m === 11 ? { y: v.y + 1, m: 0 } : { ...v, m: v.m + 1 })} className="text-[#D4B996] text-xl font-bold">›</button>
       </div>
       <div className="grid grid-cols-7 gap-1 text-center">
-        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} className="text-[10px] text-white/20 font-bold">{d}</div>)}
+        {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} className="text-[10px] text-white/20 font-bold uppercase">{d}</div>)}
         {cells.map((day, i) => {
           if (!day) return <div key={i} />;
           const iso = toISO(view.y, view.m, day);
@@ -84,7 +84,7 @@ export default function PortfolioPage() {
     setBookingLoading(true);
     try {
       const sNames = cart.map(s => s.name).join(', ');
-      await createBooking({ profile_id: profile.id, service_id: cart[0].id, client_name: form.name, client_phone: form.phone, booking_date: form.date, total_price: total, note: `UTR: ${form.utr}` });
+      await createBooking({ profile_id: profile.id, service_id: cart[0].id, client_name: form.name, client_phone: form.phone, booking_date: form.date, total_price: total, note: `Services: ${sNames} | UTR: ${form.utr}` });
       setSuccess(true);
       openWhatsApp(profile.phone, { clientName: form.name, clientPhone: form.phone, selectedDate: form.date, advance: adv, pending: total - adv, serviceName: sNames });
     } catch (e) { alert("Error!"); } finally { setBookingLoading(false); }
@@ -105,11 +105,11 @@ export default function PortfolioPage() {
           <img src={transformDriveLink(profile.avatar_url)} className="w-24 h-24 rounded-[30px] object-cover border-2 border-[#1A1A1A]" />
         </div>
         <h1 className="text-3xl font-black text-[#D4B996] italic tracking-tighter text-center">{profile.full_name}</h1>
-        <p className="text-[10px] uppercase tracking-[0.4em] text-white/30 mt-1">{profile.tagline || 'ArtistHub Member'}</p>
+        <p className="text-[10px] uppercase tracking-[0.4em] text-white/30 mt-1">{profile.tagline || 'Makeup Artist'}</p>
       </div>
 
       <section className="mt-12 px-6">
-        <h2 className="text-[11px] uppercase tracking-[0.4em] text-[#D4B996] font-bold mb-6">Education & Experience</h2>
+        <h2 className="text-[11px] uppercase tracking-[0.4em] text-[#D4B996] font-bold mb-6 text-center">Background & Experience</h2>
         <div className="bg-white/5 rounded-[32px] p-6 border border-white/10 space-y-4">
           <div className="flex gap-4 items-start">
             <span className="text-xl">🎓</span>
@@ -142,7 +142,7 @@ export default function PortfolioPage() {
       </section>
 
       <section className="mt-16 px-6">
-        <h2 className="text-[11px] uppercase tracking-[0.4em] text-[#D4B996] font-bold mb-6 text-center">Service Charges</h2>
+        <h2 className="text-[11px] uppercase tracking-[0.4em] text-[#D4B996] font-bold mb-6 text-center">Our Service Charges</h2>
         <div className="space-y-6">
           {services.map(s => {
             const added = cart.find(x => x.id === s.id);
@@ -161,21 +161,21 @@ export default function PortfolioPage() {
       <section ref={bookingRef} className="mt-20 px-6 pb-20 scroll-mt-24">
         <div className="bg-[#1A1A1A] rounded-[40px] p-6 border border-white/5 shadow-2xl">
           {success ? <div className="text-center py-10 animate-fadeIn"><h3 className="text-2xl font-black text-[#D4B996] italic mb-2 tracking-tighter">Booking Confirmed! ✨</h3></div> : (
-            <div className="space-y-8">
-              <h2 className="text-[11px] uppercase tracking-[0.4em] text-[#D4B996] font-bold text-center">Checkout</h2>
+            <div className="space-y-8 text-center">
+              <h2 className="text-[11px] uppercase tracking-[0.4em] text-[#D4B996] font-bold">Checkout Dates</h2>
               {cart.length > 0 ? (
                 <>
                   <div className="space-y-2">{cart.map(x => <div key={x.id} className="flex justify-between p-3 bg-white/5 rounded-xl text-xs"><span>{x.name}</span><span className="text-[#D4B996] font-bold">{formatINR(x.price)}</span></div>)}</div>
                   <BookingCalendar busyDates={busyDates} selectedDate={form.date} onSelect={d => setForm({...form, date:d})} />
                   <div className="space-y-4">
-                    <input placeholder="Name" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-sm font-bold" onChange={e => setForm({...form, name: e.target.value})} />
-                    <input placeholder="WhatsApp No" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-sm font-bold" onChange={e => setForm({...form, phone: e.target.value})} />
+                    <input placeholder="Name" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-sm font-bold text-center" onChange={e => setForm({...form, name: e.target.value})} />
+                    <input placeholder="WhatsApp No" className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl outline-none text-sm font-bold text-center" onChange={e => setForm({...form, phone: e.target.value})} />
                   </div>
                   {form.date && form.name && (
                     <div className="space-y-6 text-center animate-slideUp border-t border-white/5 pt-6">
                       <div className="p-6 bg-[#D4B996]/10 rounded-3xl border border-[#D4B996]/30"><p className="text-[10px] uppercase text-white/40 mb-2 font-bold tracking-widest text-center">Advance (30%)</p><p className="text-4xl font-black text-[#D4B996] tracking-tighter mb-6">{formatINR(adv)}</p><a href={upi} className="inline-block bg-[#5f259f] text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase">Pay Now</a></div>
                       <div className="bg-white p-4 rounded-3xl inline-block shadow-2xl"><img src={transformDriveLink(profile.upi_qr_url)} className="w-40 h-auto mx-auto" /><p className="text-[9px] text-black/40 font-mono mt-3 uppercase font-bold text-center">{profile.upi_id}</p></div>
-                      <input placeholder="Transaction ID / UTR" className="w-full p-4 bg-white/5 border border-[#D4B996]/30 rounded-2xl text-center outline-none text-sm font-black" onChange={e => setForm({...form, utr: e.target.value})} />
+                      <input placeholder="Transaction ID / UTR" className="w-full p-4 bg-white/5 border border-[#D4B996]/30 rounded-2xl text-center outline-none text-sm font-black text-center" onChange={e => setForm({...form, utr: e.target.value})} />
                       <button onClick={handleBooking} disabled={!form.utr || bookingLoading} className="w-full py-4 bg-[#D4B996] text-black font-black rounded-2xl uppercase text-[11px] tracking-widest">{bookingLoading ? 'Wait...' : 'Confirm Order'}</button>
                     </div>
                   )}
