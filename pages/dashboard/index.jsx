@@ -71,51 +71,113 @@ function ProfileEditor({ profile, userId, onSaved }) {
     experience: profile?.experience || '', 
     instagram_url: profile?.instagram_url || '',
     avatar_url: profile?.avatar_url || '', 
+    cover_url: profile?.cover_url || '',
     upi_qr_url: profile?.upi_qr_url || '', 
     portfolio_images: (profile?.portfolio_images || []).join('\n'),
   });
 
   const save = async () => {
     if(!f.username) return alert("Username required!");
+    if(isSaving) return;
     setIsSaving(true);
+    const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
+    
+    const profileData = {
+      id: userId,
+      username: f.username,
+      full_name: f.full_name,
+      phone: f.phone,
+      upi_id: f.upi_id,
+      tagline: f.tagline,
+      education: f.education,      
+      experience: f.experience,    
+      instagram_url: f.instagram_url,
+      avatar_url: f.avatar_url,
+      cover_url: f.cover_url,
+      upi_qr_url: f.upi_qr_url,
+      portfolio_images: imgs,
+      updated_at: new Date()
+    };
+
     try {
-      const imgs = f.portfolio_images.split('\n').filter(x => x.trim());
-      const { data, error } = await supabase.from('profiles').upsert({
-        id: userId, ...f, portfolio_images: imgs, updated_at: new Date()
-      }).select().single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .upsert(profileData)
+        .select()
+        .single();
       if (error) throw error;
-      onSaved(data); alert("Profile Saved! ✨");
-    } catch (err) { alert("Error: " + err.message); } finally { setIsSaving(false); }
+      onSaved(data); 
+      alert("Profile Updated Successfully! ✨");
+    } catch (err) {
+      alert("Error: " + (err.message || "Save nahi ho paya. SQL columns check karein."));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const copyLink = () => {
+    if(!profile?.username) return alert("Pehle profile save karein!");
     const link = `${window.location.origin}/portfolio/${profile.username}`;
     navigator.clipboard.writeText(link);
-    alert("Link Copied! 📋");
+    alert("Portfolio Link Copied! 📋");
   };
 
-  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm outline-none mb-4 focus:border-[#D4B996]/50";
+  const inputStyle = "w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-sm focus:border-[#D4B996]/50 outline-none mb-4 transition-all";
 
   return (
-    <div className="animate-fadeIn">
-      <div className="space-y-1">
-        <input placeholder="Username" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
-        <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
-        <input placeholder="Instagram URL" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
-        <textarea placeholder="Education" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} />
-        <textarea placeholder="Experience" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} />
-        <textarea placeholder="Portfolio Image Links (one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
+    <div className="animate-fadeIn pb-10">
+      {/* 📸 PHOTO UPLOAD INSTRUCTIONS BOX */}
+      <div className="bg-[#D4B996]/10 border border-[#D4B996]/30 p-6 rounded-[32px] mb-8">
+        <h4 className="text-[10px] text-[#D4B996] uppercase mb-4 italic font-black tracking-widest">📸 Photo Upload Instructions:</h4>
+        <ul className="text-[10px] text-white/60 space-y-2 list-disc ml-5 leading-relaxed">
+          <li>Google Drive par photo upload karein.</li>
+          <li>Photo par right-click karke <b>"Share"</b> par click karein.</li>
+          <li>General Access ko <b>"Anyone with the link"</b> par set karein.</li>
+          <li>Link copy karein aur niche box mein paste kar dein.</li>
+        </ul>
       </div>
-      <button onClick={save} disabled={isSaving} className="w-full py-4 bg-[#D4B996] text-black font-bold rounded-2xl uppercase text-xs mt-4">
-        {isSaving ? 'Saving...' : 'Save Profile ✨'}
+
+      <div className="space-y-6">
+        {/* PERSONAL & PAYMENT SECTION */}
+        <div>
+          <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-black">Personal & Payment</h3>
+          <input placeholder="Username (Unique)" value={f.username} onChange={e => setF({...f, username: e.target.value})} className={inputStyle} />
+          <input placeholder="Full Name" value={f.full_name} onChange={e => setF({...f, full_name: e.target.value})} className={inputStyle} />
+          <input placeholder="WhatsApp Phone (e.g. 91...)" value={f.phone} onChange={e => setF({...f, phone: e.target.value})} className={inputStyle} />
+          <input placeholder="Instagram Link (URL)" value={f.instagram_url} onChange={e => setF({...f, instagram_url: e.target.value})} className={inputStyle} />
+          <input placeholder="UPI ID (for payments)" value={f.upi_id} onChange={e => setF({...f, upi_id: e.target.value})} className={inputStyle} />
+        </div>
+
+        {/* ABOUT & EXPERIENCE SECTION */}
+        <div>
+          <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-black">About & Experience</h3>
+          <textarea placeholder="Education (e.g. BA Graduate)" value={f.education} onChange={e => setF({...f, education: e.target.value})} className={inputStyle} rows={2} />
+          <textarea placeholder="Experience (e.g. 5 Years in Makeup)" value={f.experience} onChange={e => setF({...f, experience: e.target.value})} className={inputStyle} rows={2} />
+        </div>
+
+        {/* MEDIA SECTION */}
+        <div>
+          <h3 className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-black">Portfolio Media</h3>
+          <textarea placeholder="Portfolio Image Links (one per line)" value={f.portfolio_images} onChange={e => setF({...f, portfolio_images: e.target.value})} className={inputStyle} rows={4} />
+          <input placeholder="Profile Photo Link (Avatar URL)" value={f.avatar_url} onChange={e => setF({...f, avatar_url: e.target.value})} className={inputStyle} />
+          <input placeholder="UPI QR Image Link" value={f.upi_qr_url} onChange={e => setF({...f, upi_qr_url: e.target.value})} className={inputStyle} />
+        </div>
+      </div>
+      
+      <button 
+        onClick={save} 
+        disabled={isSaving}
+        className={`w-full py-5 bg-[#D4B996] text-[#1A1A1A] font-black rounded-3xl uppercase text-xs mb-8 transition-all shadow-2xl shadow-[#D4B996]/10 ${isSaving ? 'opacity-50 cursor-not-allowed' : 'opacity-100 active:scale-95'}`}
+      >
+        {isSaving ? 'Processing...' : 'Save Profile ✨'}
       </button>
 
       {profile?.username && (
-        <div className="mt-8 p-6 bg-white/5 border border-[#D4B996]/20 rounded-[32px] text-center">
-          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-4 font-bold">Public Portfolio</p>
-          <div className="flex gap-2">
-            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-3 bg-white/5 border border-white/10 rounded-xl text-[10px] font-bold uppercase">View</button>
-            <button onClick={copyLink} className="flex-1 py-3 bg-[#D4B996] text-black rounded-xl text-[10px] font-bold uppercase">Copy Link</button>
+        <div className="mt-8 p-8 bg-white/5 border border-[#D4B996]/20 rounded-[40px] text-center">
+          <p className="text-[10px] uppercase tracking-widest text-[#D4B996] mb-6 font-black">Public Portfolio</p>
+          <div className="flex gap-3">
+            <button onClick={() => window.open(`/portfolio/${profile.username}`, '_blank')} className="flex-1 py-4 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-bold uppercase transition-all hover:bg-white/10">View Live</button>
+            <button onClick={copyLink} className="flex-1 py-4 bg-[#D4B996] text-black rounded-2xl text-[10px] font-bold uppercase transition-all hover:bg-[#D4B996]/80">Copy Link</button>
           </div>
         </div>
       )}
